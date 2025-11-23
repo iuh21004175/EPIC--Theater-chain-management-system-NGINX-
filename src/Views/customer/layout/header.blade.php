@@ -323,6 +323,12 @@
         }
     }
     </style>
+    <script>
+            window.config = {
+                url: "{{ $_ENV['URL_WEB_BASE'] }}",
+                socketUrl: "{{ $_ENV['URL_SERVER_REALTIME'] }}",
+            }
+    </script>
 </head>
 <body class="bg-gray-100">
     <div class="chat-container" id="notifyBox">
@@ -829,6 +835,6 @@
         }
     });
 
-</script>
+</scrip>
 <script src="{{ $_ENV['URL_WEB_BASE'] }}/js/auth.js"></script>
 </html>
