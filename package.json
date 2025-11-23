@@ -1,0 +1,18 @@
+{
+  "name": "chuoirapchieuphim1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:css:internal": "tailwindcss -c ./tailwind.internal.config.js -i ./internal/input.css -o ./internal/css/tailwind.css --minify",
+    "build:css:customer": "tailwindcss -c ./tailwind.customer.config.js -i ./customer/input.css -o ./customer/css/tailwind.css --minify"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "description": "",
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}

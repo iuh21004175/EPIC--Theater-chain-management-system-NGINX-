@@ -1,0 +1,15 @@
+# Python
+venv/
+# php
+cache/
+vendor/
+xml/
+node_modules/
+bin/python/__pycache__/
+
+# Environment variables
+.env
+.env.local
+composer.lock
+package-lock.json
+
