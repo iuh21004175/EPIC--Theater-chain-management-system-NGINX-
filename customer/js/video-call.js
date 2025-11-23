@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Thiết lập kết nối Socket.IO
     function setupSocketConnection() {
         // Kết nối Socket.IO
-        socket = io('http://localhost:3000/video', {
+        socket = io(window.config.socketUrl, {
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionDelay: 1000,
@@ -361,7 +361,8 @@ document.addEventListener('DOMContentLoaded', function() {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'turn:epiccinema.io.vn:3478', username: 'videocall', credential: '2025' }
             ]
         };
 
