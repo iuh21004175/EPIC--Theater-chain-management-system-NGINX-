@@ -22,6 +22,7 @@ class Sc_MuaPhim {
         $so_tien = $data['so_tien'] ?? 0;
         $phuong_thuc = $data['phuong_thuc'] ?? 1;
         $now = date('Y-m-d H:i:s');
+        $ngay_het_han = date('Y-m-d H:i:s', strtotime('+30 days'));
 
         $muaPhim = MuaPhim::create([
             'khach_hang_id' => $khach_hang_id,
@@ -29,7 +30,7 @@ class Sc_MuaPhim {
             'trang_thai' => $trang_thai,
             'phuong_thuc' => $phuong_thuc,
             'don_hang_id' => $don_hang_id,
-            'ngay_het_han' => $now
+            'ngay_het_han' => $ngay_het_han
         ]);
 
         if ($muaPhim) {

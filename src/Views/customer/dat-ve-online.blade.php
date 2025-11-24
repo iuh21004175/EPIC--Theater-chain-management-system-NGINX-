@@ -10,75 +10,20 @@
     <!-- Quality Selector Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-quality-levels@2.1.0/dist/videojs-contrib-quality-levels.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/videojs-hls-quality-selector@1.1.1/dist/videojs-hls-quality-selector.min.js"></script>
-    <!-- FFmpeg.wasm for video conversion -->
-    <!-- Sử dụng ES module import từ jsdelivr -->
-    <script type="module">
-        // Import FFmpeg.wasm theo đúng cách từ jsdelivr
-        (async function() {
-            try {
-                console.log('Bắt đầu tải FFmpeg.wasm từ jsdelivr...');
-                
-                // Import từ jsdelivr CDN - sử dụng URL đúng theo package structure
-                const module = await import('https://cdn.jsdelivr.net/npm/@ffmpeg.wasm/main@0.13.1/+esm');
-                const FFmpeg = module.FFmpeg || module.default?.FFmpeg || module.default;
-                
-                if (!FFmpeg) {
-                    throw new Error('Không tìm thấy FFmpeg trong module');
-                }
-                
-                if (typeof FFmpeg.create !== 'function') {
-                    throw new Error('FFmpeg không có method create');
-                }
-                
-                // Export ra global scope để code khác dùng
-                window.FFmpegWASM = FFmpeg;
-                console.log('✓ FFmpeg.wasm đã tải thành công:', FFmpeg);
-                window.dispatchEvent(new CustomEvent('ffmpeg-ready'));
-                
-            } catch (error) {
-                console.error('✗ Lỗi khi tải FFmpeg.wasm (ES module):', error);
-                
-                // Fallback: thử import trực tiếp từ dist/esm
-                try {
-                    console.log('Thử fallback: import từ dist/esm...');
-                    const { FFmpeg } = await import('https://cdn.jsdelivr.net/npm/@ffmpeg.wasm/main@0.13.1/dist/esm/index.js');
-                    
-                    if (FFmpeg && typeof FFmpeg.create === 'function') {
-                        window.FFmpegWASM = FFmpeg;
-                        console.log('✓ FFmpeg.wasm loaded via fallback');
-                        window.dispatchEvent(new CustomEvent('ffmpeg-ready'));
-                        return;
-                    }
-                } catch (e2) {
-                    console.error('✗ Fallback cũng failed:', e2);
-                }
-                
-                // Fallback cuối: dùng global script
-                console.log('Thử fallback cuối: global script...');
-                window.FFmpegWASM = null;
-                window.FFmpegError = error.message;
-                
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/@ffmpeg.wasm/main@0.13.1/dist/index.global.js';
-                script.onload = () => {
-                    console.log('Global script loaded, kiểm tra...');
-                    // Kiểm tra nhiều tên có thể có
-                    const FFmpegClass = window.FFmpeg || window.FFmpegWASM || globalThis.FFmpeg;
-                    if (FFmpegClass && typeof FFmpegClass.create === 'function') {
-                        window.FFmpegWASM = FFmpegClass;
-                        console.log('✓ FFmpeg.wasm loaded via global script');
-                        window.dispatchEvent(new CustomEvent('ffmpeg-ready'));
-                    } else {
-                        console.error('✗ Global script loaded nhưng không tìm thấy FFmpeg');
-                        console.log('Các biến có sẵn:', Object.keys(window).filter(k => k.toLowerCase().includes('ffmpeg')));
-                    }
-                };
-                script.onerror = (e) => {
-                    console.error('✗ Global script cũng failed:', e);
-                };
-                document.head.appendChild(script);
-            }
-        })();
+    <!-- StreamSaver for streaming video download -->
+    <script src="https://cdn.jsdelivr.net/npm/streamsaver@2.0.6/StreamSaver.min.js"></script>
+    <script>
+        // Kiểm tra StreamSaver đã load chưa
+        // StreamSaver có thể export dưới nhiều tên khác nhau
+        window.streamSaver = window.streamSaver || window.streamsaver || streamSaver;
+        
+        if (typeof window.streamSaver !== 'undefined') {
+            console.log('✓ StreamSaver đã tải thành công');
+            window.StreamSaverReady = true;
+            window.dispatchEvent(new CustomEvent('streamsaver-ready'));
+        } else {
+            console.error('✗ StreamSaver không tải được');
+        }
     </script>
     
     <style>
@@ -157,6 +102,29 @@
         .card-hover:hover {
             transform: translateY(-4px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        #downloadQualityMenu {
+            animation: fadeInUp 0.3s ease-out;
+        }
+        .download-quality-option {
+            border-bottom: 1px solid rgba(55, 65, 81, 0.5);
+        }
+        .download-quality-option:last-child {
+            border-bottom: none;
+        }
+        #downloadQualityOptions::-webkit-scrollbar {
+            width: 6px;
+        }
+        #downloadQualityOptions::-webkit-scrollbar-track {
+            background: rgba(17, 24, 39, 0.5);
+            border-radius: 3px;
+        }
+        #downloadQualityOptions::-webkit-scrollbar-thumb {
+            background: rgba(220, 38, 38, 0.5);
+            border-radius: 3px;
+        }
+        #downloadQualityOptions::-webkit-scrollbar-thumb:hover {
+            background: rgba(220, 38, 38, 0.7);
         }
     </style>
 <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 font-sans">
@@ -490,12 +458,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     ${duocXem && daMua ? `
-                    <div class="w-full flex justify-end mt-4">
-                        <button id="downloadVideoBtn" 
-                            class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-semibold transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-red-500/50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i class="fas fa-download"></i>
-                            <span>Tải xuống MP4</span>
-                        </button>
+                    <div class="w-full flex justify-end mt-4 relative">
+                        <div class="relative inline-block">
+                            <button id="downloadVideoBtn" 
+                                class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-semibold transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-red-500/50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-download"></i>
+                                <span>Tải xuống MP4</span>
+                                <i class="fas fa-chevron-down ml-1 text-sm"></i>
+                            </button>
+                            <div id="downloadQualityMenu" class="hidden absolute right-0 mt-2 w-56 bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-xl shadow-2xl border border-gray-700 z-50 overflow-hidden">
+                                <div class="p-2">
+                                    <div class="px-4 py-2 text-gray-400 text-sm font-semibold border-b border-gray-700 mb-1">Chọn chất lượng:</div>
+                                    <div id="downloadQualityOptions" class="max-h-64 overflow-y-auto">
+                                        <div class="text-center py-4 text-gray-400">
+                                            <i class="fas fa-spinner fa-spin mb-2"></i>
+                                            <p class="text-sm">Đang tải danh sách chất lượng...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div id="downloadProgress" class="hidden mt-4 w-full bg-gray-700 rounded-full h-2.5">
                             <div id="downloadProgressBar" class="bg-red-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                         </div>
@@ -533,7 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ 
                                 // phim_id: idPhim,
-                                tong_tien: 30000,
+                                tong_tien: 150000,
                                 ma_ve: maVe,
                                 phuong_thuc_mua: 1
                             })
@@ -610,189 +592,334 @@ document.addEventListener('DOMContentLoaded', () => {
             // Nút download - chỉ hiển thị khi đã mua phim (trạng thái = 2)
             if (duocXem && daMua) {
                 const btn = document.getElementById('downloadVideoBtn');
+                const qualityMenu = document.getElementById('downloadQualityMenu');
+                const qualityOptions = document.getElementById('downloadQualityOptions');
                 const progressDiv = document.getElementById('downloadProgress');
                 const progressBar = document.getElementById('downloadProgressBar');
                 const statusText = document.getElementById('downloadStatus');
                 
-                if (btn) {
-                    btn.addEventListener('click', async () => {
-                        try {
-                            // Disable button và hiển thị progress
-                            btn.disabled = true;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Đang xử lý...</span>';
-                            progressDiv.classList.remove('hidden');
-                            statusText.classList.remove('hidden');
-                            statusText.textContent = 'Đang tải video từ server...';
-                            progressBar.style.width = '10%';
-
-                            // Tải video từ HLS stream
-                            const response = await fetch(videoUrl);
-                            if (!response.ok) throw new Error('Không thể tải video từ server');
+                let qualityList = [];
+                let masterM3u8Url = videoUrl;
+                
+                // Hàm parse m3u8 master playlist để lấy danh sách chất lượng
+                async function loadQualityOptions() {
+                    try {
+                        let absoluteVideoUrl = masterM3u8Url;
+                        if (!masterM3u8Url.startsWith('http')) {
+                            const baseUrlObj = new URL(baseUrl);
+                            absoluteVideoUrl = new URL(masterM3u8Url, baseUrlObj.origin).href;
+                        }
+                        
+                        const response = await fetch(absoluteVideoUrl);
+                        if (!response.ok) throw new Error('Không thể tải playlist');
+                        
+                        const m3u8Text = await response.text();
+                        const lines = m3u8Text.split('\n');
+                        
+                        qualityList = [];
+                        let currentBandwidth = null;
+                        let currentResolution = null;
+                        let currentUrl = null;
+                        
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i].trim();
                             
-                            statusText.textContent = 'Đang khởi tạo FFmpeg...';
-                            progressBar.style.width = '20%';
-
-                            // Đợi FFmpeg load xong (tối đa 10 giây)
-                            statusText.textContent = 'Đang đợi FFmpeg sẵn sàng...';
-                            progressBar.style.width = '15%';
-                            
-                            let ffmpegReady = false;
-                            const maxWaitTime = 10000; // 10 giây
-                            const startTime = Date.now();
-                            
-                            while (!window.FFmpegWASM && (Date.now() - startTime) < maxWaitTime) {
-                                await new Promise(resolve => setTimeout(resolve, 100));
+                            if (line.startsWith('#EXT-X-STREAM-INF:')) {
+                                // Parse bandwidth và resolution
+                                const bandwidthMatch = line.match(/BANDWIDTH=(\d+)/);
+                                const resolutionMatch = line.match(/RESOLUTION=(\d+x\d+)/);
+                                
+                                currentBandwidth = bandwidthMatch ? parseInt(bandwidthMatch[1]) : null;
+                                currentResolution = resolutionMatch ? resolutionMatch[1] : null;
+                            } else if (line && !line.startsWith('#') && currentBandwidth !== null) {
+                                // Đây là URL của playlist
+                                if (line.startsWith('http')) {
+                                    currentUrl = line;
+                                } else if (line.startsWith('/')) {
+                                    const urlObj = new URL(absoluteVideoUrl);
+                                    currentUrl = urlObj.origin + line;
+                                } else {
+                                    const baseUrl = absoluteVideoUrl.substring(0, absoluteVideoUrl.lastIndexOf('/') + 1);
+                                    currentUrl = baseUrl + line;
+                                }
+                                
+                                const [width, height] = currentResolution ? currentResolution.split('x').map(Number) : [null, null];
+                                
+                                qualityList.push({
+                                    url: currentUrl,
+                                    bandwidth: currentBandwidth,
+                                    resolution: currentResolution,
+                                    height: height,
+                                    width: width,
+                                    label: height ? `${height}p` : `${Math.round(currentBandwidth / 1000)}kbps`
+                                });
+                                
+                                currentBandwidth = null;
+                                currentResolution = null;
+                                currentUrl = null;
                             }
-                            
-                            if (!window.FFmpegWASM) {
-                                throw new Error('FFmpeg không thể tải. Vui lòng tải lại trang và thử lại.');
-                            }
-
-                            // Kiểm tra xem FFmpegWASM đã có trong global scope chưa
-                            // Theo tài liệu: https://github.com/FFmpeg-wasm/FFmpeg.wasm/
-                            // Global script export FFmpeg vào window.FFmpeg
-                            const FFmpegClass = window.FFmpegWASM || window.FFmpeg;
-                            
-                            if (!FFmpegClass || typeof FFmpegClass.create !== 'function') {
-                                throw new Error('FFmpeg.wasm chưa được tải. Vui lòng:\n1. Tải lại trang\n2. Đợi vài giây để script load\n3. Kiểm tra console để xem lỗi chi tiết');
-                            }
-
-                            statusText.textContent = 'Đang tải FFmpeg core...';
-                            progressBar.style.width = '20%';
-
-                            // Khởi tạo FFmpeg theo đúng API từ tài liệu
-                            // FFmpeg.create({ core: "@ffmpeg.wasm/core-mt" })
-                            const ffmpeg = await FFmpegClass.create({
-                                core: '@ffmpeg.wasm/core-mt',
-                            });
-
-                            ffmpeg.on('log', ({ message }) => {
-                                console.log('FFmpeg:', message);
-                            });
-
-                            ffmpeg.on('progress', ({ progress }) => {
-                                const percent = Math.round(progress * 100);
-                                progressBar.style.width = `${20 + (percent * 0.6)}%`; // 20% -> 80%
-                                statusText.textContent = `Đang chuyển đổi: ${percent}%`;
-                            });
-
-                            statusText.textContent = 'Đang tải video stream...';
-                            progressBar.style.width = '30%';
-
-                            // Tải file m3u8 (playlist)
-                            // Lưu ý: FFmpeg.wasm cần URL đầy đủ để có thể tải các segment
-                            // Nếu videoUrl là relative, cần chuyển thành absolute URL
-                            let absoluteVideoUrl = videoUrl;
-                            if (!videoUrl.startsWith('http')) {
-                                const baseUrlObj = new URL(baseUrl);
-                                absoluteVideoUrl = new URL(videoUrl, baseUrlObj.origin).href;
-                            }
-                            
-                            // Tải file m3u8 để xử lý
-                            const m3u8Response = await fetch(absoluteVideoUrl);
-                            if (!m3u8Response.ok) {
-                                throw new Error('Không thể tải video playlist từ server. Có thể do CORS hoặc server không cho phép.');
-                            }
-                            
-                            let m3u8Text = await m3u8Response.text();
-                            
-                            // Xử lý m3u8: chuyển các URL relative thành absolute
-                            const m3u8Lines = m3u8Text.split('\n');
-                            const baseM3u8Url = absoluteVideoUrl.substring(0, absoluteVideoUrl.lastIndexOf('/') + 1);
-                            const processedM3u8 = m3u8Lines.map(line => {
-                                if (line.trim() && !line.startsWith('#') && !line.startsWith('http')) {
-                                    // Nếu là URL relative, chuyển thành absolute
-                                    if (line.startsWith('/')) {
-                                        const urlObj = new URL(absoluteVideoUrl);
-                                        return urlObj.origin + line;
-                                    } else {
-                                        return baseM3u8Url + line;
+                        }
+                        
+                        // Nếu không tìm thấy quality levels trong master playlist, thử lấy từ player
+                        if (qualityList.length === 0) {
+                            const player = videojs.getPlayer('my-video');
+                            if (player) {
+                                const qualityLevels = player.qualityLevels();
+                                if (qualityLevels && qualityLevels.length > 0) {
+                                    for (let i = 0; i < qualityLevels.length; i++) {
+                                        const ql = qualityLevels[i];
+                                        qualityList.push({
+                                            url: masterM3u8Url, // Dùng URL gốc, sẽ chọn quality trong FFmpeg
+                                            bandwidth: ql.bitrate,
+                                            resolution: ql.width && ql.height ? `${ql.width}x${ql.height}` : null,
+                                            height: ql.height,
+                                            width: ql.width,
+                                            index: i,
+                                            label: ql.height ? `${ql.height}p (${Math.round(ql.bitrate / 1000)}kbps)` : `${Math.round(ql.bitrate / 1000)}kbps`
+                                        });
                                     }
                                 }
-                                return line;
-                            }).join('\n');
-                            
-                            statusText.textContent = 'Đang ghi file vào FFmpeg...';
-                            progressBar.style.width = '40%';
-
-                            // Ghi file m3u8 đã xử lý vào FFmpeg
-                            // FFmpeg sẽ tự động tải các segment từ URL trong m3u8
-                            // Sử dụng ffmpeg.fs.writeFile() theo API đúng từ tài liệu
-                            await ffmpeg.fs.writeFile('input.m3u8', processedM3u8);
-
-                            statusText.textContent = 'Đang chuyển đổi sang MP4...';
-                            progressBar.style.width = '50%';
-
-                            // Chuyển đổi sang MP4
-                            // Sử dụng ffmpeg.run() theo API đúng từ tài liệu
-                            await ffmpeg.run(
-                                '-i', 'input.m3u8',
-                                '-c', 'copy',
-                                '-bsf:a', 'aac_adtstoasc',
-                                '-f', 'mp4',
-                                'output.mp4'
-                            );
-
-                            statusText.textContent = 'Đang lấy file đã chuyển đổi...';
-                            progressBar.style.width = '90%';
-
-                            // Đọc file output sử dụng ffmpeg.fs.readFile() theo API đúng
-                            const data = await ffmpeg.fs.readFile('output.mp4');
-                            
-                            statusText.textContent = 'Đang tạo file download...';
-                            progressBar.style.width = '95%';
-
-                            // Tạo blob và download
-                            const blob = new Blob([data.buffer], { type: 'video/mp4' });
-                            const mp4Filename = filename.replace(/\.(m3u8|ts)$/i, '.mp4') || 'video.mp4';
-                            
-                            const link = document.createElement("a");
-                            link.href = window.URL.createObjectURL(blob);
-                            link.download = mp4Filename;
-                            document.body.appendChild(link);
-                            link.click();
-
-                            // Cleanup
-                            setTimeout(() => {
-                                window.URL.revokeObjectURL(link.href);
-                                link.remove();
-                                progressBar.style.width = '100%';
-                                statusText.textContent = 'Tải xuống thành công!';
-                                
-                                setTimeout(() => {
-                                    progressDiv.classList.add('hidden');
-                                    statusText.classList.add('hidden');
-                                    btn.disabled = false;
-                                    btn.innerHTML = '<i class="fas fa-download"></i> <span>Tải xuống MP4</span>';
-                                    progressBar.style.width = '0%';
-                                }, 2000);
-                            }, 100);
-
-                        } catch (error) {
-                            console.error('Lỗi download video:', error);
-                            
-                            let errorMessage = 'Không thể tải video: ' + (error.message || 'Lỗi không xác định');
-                            
-                            // Kiểm tra các lỗi phổ biến
-                            if (error.message && error.message.includes('CORS')) {
-                                errorMessage += '\n\nLỗi CORS: Server không cho phép truy cập video từ trình duyệt.';
-                            } else if (error.message && error.message.includes('SharedArrayBuffer')) {
-                                errorMessage += '\n\nTrình duyệt không hỗ trợ SharedArrayBuffer. Vui lòng sử dụng Chrome/Edge mới nhất.';
-                            } else {
-                                errorMessage += '\n\nLưu ý:\n';
-                                errorMessage += '- Chức năng này yêu cầu trình duyệt hỗ trợ SharedArrayBuffer\n';
-                                errorMessage += '- Có thể mất vài phút để xử lý video dài\n';
-                                errorMessage += '- Đảm bảo kết nối internet ổn định';
                             }
                             
-                            alert(errorMessage);
+                            // Nếu vẫn không có, thêm option mặc định
+                            if (qualityList.length === 0) {
+                                qualityList.push({
+                                    url: masterM3u8Url,
+                                    bandwidth: null,
+                                    resolution: null,
+                                    height: null,
+                                    width: null,
+                                    label: 'Chất lượng mặc định'
+                                });
+                            }
+                        }
+                        
+                        // Sắp xếp theo độ phân giải giảm dần
+                        qualityList.sort((a, b) => (b.height || 0) - (a.height || 0));
+                        
+                        // Render options
+                        if (qualityList.length === 0) {
+                            qualityOptions.innerHTML = `
+                                <div class="px-4 py-3 text-gray-400 text-sm text-center">
+                                    Không tìm thấy chất lượng nào
+                                </div>
+                            `;
+                        } else {
+                            qualityOptions.innerHTML = qualityList.map((quality, idx) => `
+                                <button 
+                                    class="download-quality-option w-full text-left px-4 py-3 hover:bg-gray-700/50 transition-colors duration-200 flex items-center justify-between group"
+                                    data-url="${quality.url}"
+                                    data-index="${quality.index !== undefined ? quality.index : ''}"
+                                    data-height="${quality.height || ''}">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fas fa-video text-red-500 group-hover:text-red-400"></i>
+                                        <span class="text-white font-medium">${quality.label}</span>
+                                    </div>
+                                    <i class="fas fa-download text-gray-500 group-hover:text-red-400"></i>
+                                </button>
+                            `).join('');
                             
-                            // Reset UI
+                            // Thêm event listener cho mỗi option
+                            qualityOptions.querySelectorAll('.download-quality-option').forEach(option => {
+                                option.addEventListener('click', () => {
+                                    const selectedUrl = option.getAttribute('data-url');
+                                    const selectedIndex = option.getAttribute('data-index');
+                                    const selectedHeight = option.getAttribute('data-height');
+                                    qualityMenu.classList.add('hidden');
+                                    startDownload(selectedUrl, selectedIndex, selectedHeight);
+                                });
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Lỗi load chất lượng:', error);
+                        qualityOptions.innerHTML = `
+                            <div class="px-4 py-3 text-red-400 text-sm text-center">
+                                Lỗi tải danh sách chất lượng
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Hàm tải xuống với chất lượng đã chọn sử dụng StreamSaver
+                async function startDownload(selectedUrl, qualityIndex, qualityHeight) {
+                    try {
+                        // Kiểm tra StreamSaver
+                        const streamSaverLib = window.streamSaver || window.streamsaver || streamSaver;
+                        if (typeof streamSaverLib === 'undefined' || !streamSaverLib.createWriteStream) {
+                            throw new Error('StreamSaver chưa được tải. Vui lòng tải lại trang.');
+                        }
+
+                        // Disable button và hiển thị progress
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Đang xử lý...</span>';
+                        progressDiv.classList.remove('hidden');
+                        statusText.classList.remove('hidden');
+                        statusText.textContent = 'Đang tải video từ server...';
+                        progressBar.style.width = '10%';
+
+                        // Sử dụng URL chất lượng đã chọn
+                        const videoUrlToDownload = selectedUrl || videoUrl;
+                        
+                        // Chuyển đổi URL thành absolute nếu cần
+                        let absoluteVideoUrl = videoUrlToDownload;
+                        if (!videoUrlToDownload.startsWith('http')) {
+                            const baseUrlObj = new URL(baseUrl);
+                            absoluteVideoUrl = new URL(videoUrlToDownload, baseUrlObj.origin).href;
+                        }
+
+                        statusText.textContent = 'Đang tải playlist...';
+                        progressBar.style.width = '20%';
+
+                        // Tải file m3u8 để parse các segment
+                        const m3u8Response = await fetch(absoluteVideoUrl);
+                        if (!m3u8Response.ok) {
+                            throw new Error('Không thể tải video playlist từ server.');
+                        }
+                        
+                        const m3u8Text = await m3u8Response.text();
+                        const m3u8Lines = m3u8Text.split('\n');
+                        const baseM3u8Url = absoluteVideoUrl.substring(0, absoluteVideoUrl.lastIndexOf('/') + 1);
+                        
+                        // Parse danh sách các segment từ m3u8
+                        const segments = [];
+                        for (let i = 0; i < m3u8Lines.length; i++) {
+                            const line = m3u8Lines[i].trim();
+                            if (line && !line.startsWith('#') && !line.startsWith('http')) {
+                                let segmentUrl;
+                                if (line.startsWith('/')) {
+                                    const urlObj = new URL(absoluteVideoUrl);
+                                    segmentUrl = urlObj.origin + line;
+                                } else {
+                                    segmentUrl = baseM3u8Url + line;
+                                }
+                                segments.push(segmentUrl);
+                            }
+                        }
+
+                        if (segments.length === 0) {
+                            throw new Error('Không tìm thấy segment nào trong playlist.');
+                        }
+
+                        statusText.textContent = `Đang tải ${segments.length} segment...`;
+                        progressBar.style.width = '30%';
+
+                        // Tạo tên file từ tên phim - loại bỏ ký tự đặc biệt không hợp lệ
+                        const tenPhim = phim.ten_phim || 'video';
+                        let cleanTenPhim = tenPhim
+                            .replace(/[<>:"/\\|?*]/g, '') // Loại bỏ ký tự đặc biệt
+                            .replace(/\s+/g, ' ') // Chuẩn hóa khoảng trắng
+                            .trim();
+                        
+                        // Giới hạn độ dài tên file (tránh quá dài)
+                        if (cleanTenPhim.length > 200) {
+                            cleanTenPhim = cleanTenPhim.substring(0, 200);
+                        }
+                        
+                        // Đảm bảo tên file không rỗng
+                        if (!cleanTenPhim) {
+                            cleanTenPhim = 'video';
+                        }
+                        
+                        const downloadFilename = `${cleanTenPhim}.ts`;
+                        
+                        // Tạo file stream với StreamSaver
+                        const fileStream = streamSaverLib.createWriteStream(downloadFilename, {
+                            size: null // Không biết trước kích thước
+                        });
+                        
+                        const writer = fileStream.getWriter();
+
+                        // Tải và ghi từng segment vào stream
+                        let downloadedSegments = 0;
+                        const totalSegments = segments.length;
+
+                        for (let i = 0; i < segments.length; i++) {
+                            try {
+                                statusText.textContent = `Đang tải segment ${i + 1}/${totalSegments}...`;
+                                const segmentProgress = 30 + ((i / totalSegments) * 60); // 30% -> 90%
+                                progressBar.style.width = `${segmentProgress}%`;
+
+                                const segmentResponse = await fetch(segments[i]);
+                                if (!segmentResponse.ok) {
+                                    console.warn(`Không thể tải segment ${i + 1}:`, segments[i]);
+                                    continue;
+                                }
+
+                                const segmentData = await segmentResponse.arrayBuffer();
+                                await writer.write(new Uint8Array(segmentData));
+                                
+                                downloadedSegments++;
+                            } catch (segmentError) {
+                                console.error(`Lỗi khi tải segment ${i + 1}:`, segmentError);
+                                // Tiếp tục với segment tiếp theo
+                            }
+                        }
+
+                        // Đóng writer
+                        await writer.close();
+
+                        progressBar.style.width = '100%';
+                        statusText.textContent = `Tải xuống thành công! (${downloadedSegments}/${totalSegments} segments)`;
+
+                        setTimeout(() => {
                             progressDiv.classList.add('hidden');
                             statusText.classList.add('hidden');
                             btn.disabled = false;
-                            btn.innerHTML = '<i class="fas fa-download"></i> <span>Tải xuống MP4</span>';
+                            btn.innerHTML = '<i class="fas fa-download"></i> <span>Tải xuống Video</span><i class="fas fa-chevron-down ml-1 text-sm"></i>';
                             progressBar.style.width = '0%';
+                        }, 2000);
+
+                    } catch (error) {
+                        console.error('Lỗi download video:', error);
+                        
+                        let errorMessage = 'Không thể tải video: ' + (error.message || 'Lỗi không xác định');
+                        
+                        // Kiểm tra các lỗi phổ biến
+                        if (error.message && error.message.includes('CORS')) {
+                            errorMessage += '\n\nLỗi CORS: Server không cho phép truy cập video từ trình duyệt.';
+                        } else {
+                            errorMessage += '\n\nLưu ý:\n';
+                            errorMessage += '- Đảm bảo kết nối internet ổn định\n';
+                            errorMessage += '- Một số segment có thể không tải được nhưng video vẫn có thể xem được';
+                        }
+                        
+                        alert(errorMessage);
+                        
+                        // Reset UI
+                        progressDiv.classList.add('hidden');
+                        statusText.classList.add('hidden');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-download"></i> <span>Tải xuống MP4</span><i class="fas fa-chevron-down ml-1 text-sm"></i>';
+                        progressBar.style.width = '0%';
+                    }
+                }
+                
+                // Xử lý click vào nút để mở/đóng menu
+                if (btn && qualityMenu) {
+                    let menuLoaded = false;
+                    
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        
+                        if (qualityMenu.classList.contains('hidden')) {
+                            // Mở menu
+                            qualityMenu.classList.remove('hidden');
+                            
+                            // Load danh sách chất lượng lần đầu
+                            if (!menuLoaded) {
+                                loadQualityOptions();
+                                menuLoaded = true;
+                            }
+                        } else {
+                            // Đóng menu
+                            qualityMenu.classList.add('hidden');
+                        }
+                    });
+                    
+                    // Đóng menu khi click bên ngoài
+                    document.addEventListener('click', (e) => {
+                        if (!btn.contains(e.target) && !qualityMenu.contains(e.target)) {
+                            qualityMenu.classList.add('hidden');
                         }
                     });
                 }
