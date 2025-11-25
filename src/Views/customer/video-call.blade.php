@@ -189,6 +189,11 @@
     </div>
 
     <!-- Scripts -->
+    <script>
+        window.config = {
+            socketUrl: "{{ $_ENV['URL_SERVER_REALTIME'] }}"
+        };
+    </script>
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script type="module" src="{{ $_ENV['URL_WEB_BASE'] }}/customer/js/video-call.js"></script>
 </body>
