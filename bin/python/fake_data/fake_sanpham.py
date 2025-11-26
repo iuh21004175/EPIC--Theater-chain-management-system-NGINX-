@@ -13,14 +13,15 @@ Cách sử dụng:
        pip install mysql-connector-python
     
     2. Chạy script:
-       python fake_sanpham.py [số_lượng]
+       python fake_sanpham.py [số_lượng_mỗi_rạp]
     
     3. Ví dụ:
-       python fake_sanpham.py 50    # Tạo 50 sản phẩm
-       python fake_sanpham.py       # Tạo 20 sản phẩm (mặc định)
+       python fake_sanpham.py 10    # Tạo 10 sản phẩm cho mỗi rạp
+       python fake_sanpham.py       # Tạo 5 sản phẩm cho mỗi rạp (mặc định)
 
 Lưu ý:
-    - Script sẽ tạo sản phẩm cho tất cả rạp phim
+    - Script sẽ tạo sản phẩm cho TỪNG rạp phim
+    - Mỗi rạp sẽ có số lượng sản phẩm riêng
     - Mỗi sản phẩm sẽ được gán ngẫu nhiên vào một danh mục
     - Trạng thái sản phẩm: 80% đang bán, 20% ngừng bán
 """
@@ -142,12 +143,6 @@ SAN_PHAM_TEMPLATES = [
     {'ten': 'Snack khoai tây', 'mo_ta': 'Snack khoai tây giòn, đậm vị', 'gia': [20000, 25000]},
     {'ten': 'Bánh gạo', 'mo_ta': 'Bánh gạo giòn, nhẹ nhàng', 'gia': [25000, 30000]},
     
-    # Combo
-    {'ten': 'Combo 1: Bỏng ngô + Nước', 'mo_ta': 'Combo tiết kiệm: 1 bỏng ngô + 1 nước', 'gia': [45000, 55000, 65000]},
-    {'ten': 'Combo 2: Bỏng ngô + Nước + Snack', 'mo_ta': 'Combo đầy đủ: 1 bỏng ngô + 1 nước + 1 snack', 'gia': [65000, 75000, 85000]},
-    {'ten': 'Combo 3: Bỏng ngô lớn + 2 Nước', 'mo_ta': 'Combo cho đôi: 1 bỏng ngô lớn + 2 nước', 'gia': [80000, 90000, 100000]},
-    {'ten': 'Combo gia đình', 'mo_ta': 'Combo cho gia đình: 2 bỏng ngô + 4 nước + 2 snack', 'gia': [150000, 180000, 200000]},
-    
     # Đồ ăn nhanh
     {'ten': 'Hot dog', 'mo_ta': 'Xúc xích hot dog thơm ngon, nóng hổi', 'gia': [40000, 50000]},
     {'ten': 'Bánh mì kẹp', 'mo_ta': 'Bánh mì kẹp thịt nguội, rau củ tươi ngon', 'gia': [35000, 45000]},
@@ -188,42 +183,64 @@ def get_danhmuc_ids(cursor):
     return []
 
 
-def create_san_pham(cursor, connection, so_luong=20):
-    """Tạo sản phẩm giả"""
-    # Lấy danh sách rạp phim và danh mục
-    rapphim_list = get_rapphim_ids(cursor)
-    danhmuc_ids = get_danhmuc_ids(cursor)
-    
-    if not rapphim_list:
-        print("Không tìm thấy rạp phim nào trong database!")
-        return
-    
-    if not danhmuc_ids:
-        print("Cảnh báo: Không tìm thấy danh mục nào. Sản phẩm sẽ không có danh mục.")
-    
-    print(f"Tìm thấy {len(rapphim_list)} rạp phim")
-    print(f"Tìm thấy {len(danhmuc_ids)} danh mục")
-    print(f"Bắt đầu tạo {so_luong} sản phẩm...\n")
-    
+def get_san_pham_da_ton_tai(cursor, id_rapphim):
+    """Lấy danh sách tên sản phẩm đã tồn tại trong rạp"""
+    cursor.execute("SELECT ten FROM san_pham WHERE id_rapphim = %s", (id_rapphim,))
+    results = cursor.fetchall()
+    if results:
+        if USE_MYSQL_CONNECTOR:
+            return {row[0] for row in results}
+        else:
+            return {row[0] for row in results}
+    return set()
+
+
+def create_san_pham_cho_rap(cursor, connection, id_rapphim, ten_rap, so_luong, danhmuc_ids):
+    """Tạo sản phẩm cho một rạp phim cụ thể"""
     success_count = 0
     error_count = 0
     
-    for i in range(so_luong):
+    # Lấy danh sách sản phẩm đã tồn tại trong rạp để tránh trùng
+    san_pham_da_ton_tai = get_san_pham_da_ton_tai(cursor, id_rapphim)
+    
+    # Trộn danh sách template để đa dạng
+    templates = SAN_PHAM_TEMPLATES.copy()
+    random.shuffle(templates)
+    
+    # Set để theo dõi sản phẩm đã tạo trong lần chạy này
+    san_pham_da_tao = set()
+    
+    attempt = 0
+    max_attempts = so_luong * 3  # Tối đa thử 3 lần số lượng để tránh vòng lặp vô hạn
+    
+    while success_count < so_luong and attempt < max_attempts:
+        attempt += 1
         try:
             # Chọn template sản phẩm ngẫu nhiên
-            template = random.choice(SAN_PHAM_TEMPLATES)
+            template = random.choice(templates)
             
-            # Tạo tên và mô tả (có thể thêm số để tránh trùng)
+            # Tạo tên sản phẩm
             ten = template['ten']
-            if random.random() < 0.3:  # 30% thêm size
+            
+            # Kiểm tra xem tên đã tồn tại chưa (cả trong DB và trong lần chạy này)
+            if ten in san_pham_da_ton_tai or ten in san_pham_da_tao:
+                # Nếu trùng, thử thêm size để phân biệt
                 sizes = ['Nhỏ', 'Vừa', 'Lớn']
-                ten = f"{ten} - {random.choice(sizes)}"
+                ten_with_size = f"{ten} - {random.choice(sizes)}"
+                
+                # Kiểm tra lại với tên có size
+                if ten_with_size in san_pham_da_ton_tai or ten_with_size in san_pham_da_tao:
+                    # Vẫn trùng, bỏ qua và thử template khác
+                    continue
+                ten = ten_with_size
+            
+            # Đánh dấu tên đã sử dụng
+            san_pham_da_tao.add(ten)
             
             mo_ta = template['mo_ta']
             gia = random.choice(template['gia'])
             
-            # Chọn rạp phim và danh mục ngẫu nhiên
-            id_rapphim, ten_rap = random.choice(rapphim_list)
+            # Chọn danh mục ngẫu nhiên
             danh_muc_id = random.choice(danhmuc_ids) if danhmuc_ids else None
             
             # Trạng thái: 80% đang bán, 20% ngừng bán
@@ -242,7 +259,7 @@ def create_san_pham(cursor, connection, so_luong=20):
             connection.commit()
             success_count += 1
             trang_thai_text = "Đang bán" if trang_thai == 1 else "Ngừng bán"
-            print(f"[{i+1}/{so_luong}] ✓ {ten} - {gia:,}đ - {ten_rap} - {trang_thai_text}")
+            print(f"  [{success_count}/{so_luong}] ✓ {ten} - {gia:,}đ - {trang_thai_text}")
             
         except Exception as e:
             connection.rollback()
@@ -251,15 +268,52 @@ def create_san_pham(cursor, connection, so_luong=20):
             error_type = type(e).__name__
             error_msg = str(e)
             if 'IntegrityError' in error_type or 'Duplicate' in error_msg or '1062' in error_msg:
-                print(f"[{i+1}/{so_luong}] ✗ Lỗi trùng dữ liệu: {e}")
+                # Nếu trùng, thêm vào set để tránh thử lại
+                if 'ten' in locals():
+                    san_pham_da_ton_tai.add(ten)
+                print(f"  [{success_count + 1}/{so_luong}] ✗ Lỗi trùng dữ liệu: {e}")
             else:
-                print(f"[{i+1}/{so_luong}] ✗ Lỗi: {e}")
+                print(f"  [{success_count + 1}/{so_luong}] ✗ Lỗi: {e}")
             continue
     
-    print(f"\n{'='*60}")
+    if success_count < so_luong:
+        print(f"  ⚠ Cảnh báo: Chỉ tạo được {success_count}/{so_luong} sản phẩm (có thể do trùng hoặc hết template)")
+    
+    return success_count, error_count
+
+
+def create_san_pham(cursor, connection, so_luong_moi_rap=5):
+    """Tạo sản phẩm giả cho từng rạp phim"""
+    # Lấy danh sách rạp phim và danh mục
+    rapphim_list = get_rapphim_ids(cursor)
+    danhmuc_ids = get_danhmuc_ids(cursor)
+    
+    if not rapphim_list:
+        print("Không tìm thấy rạp phim nào trong database!")
+        return
+    
+    if not danhmuc_ids:
+        print("Cảnh báo: Không tìm thấy danh mục nào. Sản phẩm sẽ không có danh mục.")
+    
+    print(f"Tìm thấy {len(rapphim_list)} rạp phim")
+    print(f"Tìm thấy {len(danhmuc_ids)} danh mục")
+    print(f"Bắt đầu tạo {so_luong_moi_rap} sản phẩm cho mỗi rạp...\n")
+    
+    total_success = 0
+    total_error = 0
+    
+    for id_rap, ten_rap in rapphim_list:
+        print(f"Rạp: {ten_rap} (ID: {id_rap})")
+        success, error = create_san_pham_cho_rap(cursor, connection, id_rap, ten_rap, so_luong_moi_rap, danhmuc_ids)
+        total_success += success
+        total_error += error
+        print()  # Dòng trống giữa các rạp
+    
+    print(f"{'='*60}")
     print(f"Hoàn thành!")
-    print(f"Thành công: {success_count}")
-    print(f"Lỗi: {error_count}")
+    print(f"Tổng số rạp: {len(rapphim_list)}")
+    print(f"Tổng sản phẩm thành công: {total_success}")
+    print(f"Tổng sản phẩm lỗi: {total_error}")
     print(f"{'='*60}")
 
 
@@ -267,23 +321,23 @@ def main():
     """Hàm chính
     
     Cách sử dụng:
-        python fake_sanpham.py [số_lượng]
+        python fake_sanpham.py [số_lượng_mỗi_rạp]
     
     Ví dụ:
-        python fake_sanpham.py 50    # Tạo 50 sản phẩm
-        python fake_sanpham.py       # Tạo 20 sản phẩm (mặc định)
+        python fake_sanpham.py 10    # Tạo 10 sản phẩm cho mỗi rạp
+        python fake_sanpham.py       # Tạo 5 sản phẩm cho mỗi rạp (mặc định)
     """
     if len(sys.argv) > 1:
         try:
             so_luong = int(sys.argv[1])
             if so_luong <= 0:
-                print("Số lượng phải lớn hơn 0. Sử dụng mặc định: 20")
-                so_luong = 20
+                print("Số lượng phải lớn hơn 0. Sử dụng mặc định: 5")
+                so_luong = 5
         except ValueError:
-            print("Số lượng không hợp lệ. Sử dụng mặc định: 20")
-            so_luong = 20
+            print("Số lượng không hợp lệ. Sử dụng mặc định: 5")
+            so_luong = 5
     else:
-        so_luong = 20
+        so_luong = 5
     
     # Kết nối database
     try:
@@ -314,7 +368,7 @@ def main():
                 print("  pip install mysql-connector-python")
                 sys.exit(1)
         
-        # Tạo sản phẩm
+        # Tạo sản phẩm cho từng rạp
         create_san_pham(cursor, connection, so_luong)
         
         cursor.close()
