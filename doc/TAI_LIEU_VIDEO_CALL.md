@@ -135,14 +135,129 @@ Hệ thống Video Call được xây dựng để hỗ trợ tư vấn trực t
   - `leave-room`: Rời room
 
 ### 3.3. STUN/TURN Servers
-- **STUN Servers** (Google):
-  - `stun:stun.l.google.com:19302`
-  - `stun:stun1.l.google.com:19302`
-  - `stun:stun2.l.google.com:19302`
-- **TURN Server** (Custom):
-  - `turn:epiccinema.io.vn:3478`
-  - Username: `videocall`
-  - Credential: `2025`
+
+#### 3.3.1. STUN Server (Session Traversal Utilities for NAT)
+
+**Mục đích**: Giúp client phát hiện địa chỉ IP công khai (public IP) của mình khi đang ở sau NAT/Firewall.
+
+**Cách hoạt động**:
+- Client gửi request đến STUN server
+- STUN server trả về địa chỉ IP và port mà nó nhìn thấy
+- Client sử dụng thông tin này để thiết lập peer-to-peer connection
+
+**Khi nào chỉ cần STUN**:
+- ✅ **Môi trường localhost/local network**: Cả 2 client cùng mạng, không có NAT phức tạp
+- ✅ **Symmetric NAT không có**: NAT đơn giản, có thể traverse được
+- ✅ **Testing/Development**: Demo nội bộ, không cần production quality
+
+**STUN Servers (Google - miễn phí)**:
+```
+stun:stun.l.google.com:19302
+stun:stun1.l.google.com:19302
+stun:stun2.l.google.com:19302
+```
+
+**Hạn chế của STUN**:
+- ❌ Không hoạt động với **Symmetric NAT** (nhiều router/corporate firewall)
+- ❌ Không relay traffic → Nếu không thể P2P thì sẽ fail
+- ❌ Không đảm bảo kết nối thành công trong mọi trường hợp
+
+#### 3.3.2. TURN Server (Traversal Using Relays around NAT)
+
+**Mục đích**: Relay server để forward traffic khi không thể thiết lập peer-to-peer connection.
+
+**Cách hoạt động**:
+- Client gửi traffic đến TURN server
+- TURN server forward traffic đến peer khác
+- Hoạt động như một "trung gian" khi P2P không thể
+
+**Khi nào cần TURN**:
+- ✅ **Production environment (VPS/Cloud)**: Client ở các mạng khác nhau, có NAT phức tạp
+- ✅ **Corporate networks**: Firewall chặn P2P connections
+- ✅ **Symmetric NAT**: Router không cho phép direct connection
+- ✅ **Mobile networks**: 3G/4G/5G thường có NAT phức tạp
+- ✅ **Đảm bảo reliability**: Muốn đảm bảo cuộc gọi luôn thành công
+
+**TURN Server (Custom - EPIC Cinema)**:
+```
+turn:epiccinema.io.vn:3478
+Username: videocall
+Credential: 2025
+```
+
+**Ưu điểm của TURN**:
+- ✅ Hoạt động trong **mọi** network condition
+- ✅ Đảm bảo kết nối thành công
+- ✅ Hỗ trợ cả TCP và UDP
+
+**Nhược điểm của TURN**:
+- ❌ Tốn bandwidth (phải relay qua server)
+- ❌ Tốn chi phí server (phải host TURN server)
+- ❌ Latency cao hơn P2P (traffic phải đi qua server)
+
+#### 3.3.3. Tại sao Local chỉ cần STUN, VPS lại cần TURN?
+
+**Môi trường Local (localhost/local network)**:
+```
+Client A (192.168.1.10) ←→ Router ←→ Client B (192.168.1.11)
+```
+- Cùng một mạng LAN
+- NAT đơn giản, có thể traverse
+- STUN đủ để phát hiện IP và thiết lập P2P
+- ✅ **Chỉ cần STUN là đủ**
+
+**Môi trường Production (VPS/Internet)**:
+```
+Client A (Nhà) ←→ ISP NAT ←→ Internet ←→ ISP NAT ←→ Client B (Văn phòng)
+```
+- Khác mạng, có nhiều lớp NAT
+- Firewall của ISP có thể chặn P2P
+- Symmetric NAT không thể traverse
+- ❌ **STUN không đủ → Cần TURN để relay**
+
+#### 3.3.4. WebRTC ICE Candidate Strategy
+
+WebRTC sử dụng **ICE (Interactive Connectivity Establishment)** để tìm đường kết nối tốt nhất:
+
+1. **Host candidates**: Direct connection (cùng mạng)
+2. **Server Reflexive candidates**: STUN (phát hiện public IP)
+3. **Relay candidates**: TURN (relay qua server)
+
+**Thứ tự ưu tiên**:
+```
+1. Host (P2P cùng mạng) ← Nhanh nhất, rẻ nhất
+2. Server Reflexive (STUN) ← Nhanh, miễn phí
+3. Relay (TURN) ← Chậm hơn, tốn phí nhưng đảm bảo
+```
+
+**Fallback mechanism**:
+- WebRTC sẽ thử P2P trước
+- Nếu fail → Thử STUN
+- Nếu vẫn fail → Dùng TURN (luôn thành công)
+
+#### 3.3.5. Cấu hình STUN/TURN trong Code
+
+**Frontend (video-call.js)**:
+```javascript
+const iceServers = [
+  // STUN servers (miễn phí, dùng cho local/testing)
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  
+  // TURN server (production, cần cho VPS)
+  {
+    urls: 'turn:epiccinema.io.vn:3478',
+    username: 'videocall',
+    credential: '2025'
+  }
+];
+
+const peerConnection = new RTCPeerConnection({ iceServers });
+```
+
+**Lưu ý**:
+- Development: Có thể chỉ dùng STUN để test
+- Production: **Bắt buộc** phải có TURN để đảm bảo reliability
 
 ### 3.4. Redis
 - **Mục đích**: Cache và pub/sub
@@ -300,7 +415,23 @@ function getRedisConnection() {
 
 ### 5.3. Cấu hình TURN Server
 
-#### 5.3.1. Cài đặt Coturn
+> **⚠️ Lưu ý quan trọng**: TURN server chỉ cần thiết cho **production environment (VPS)**. 
+> Đối với development/local testing, chỉ cần STUN server là đủ.
+
+#### 5.3.1. Khi nào cần cài đặt TURN Server?
+
+**Cần TURN Server khi**:
+- ✅ Deploy lên VPS/Cloud server
+- ✅ Client có thể ở các mạng khác nhau (nhà, văn phòng, mobile)
+- ✅ Muốn đảm bảo cuộc gọi luôn thành công
+- ✅ Production environment
+
+**Không cần TURN Server khi**:
+- ❌ Development local (localhost)
+- ❌ Testing trong cùng mạng LAN
+- ❌ Demo nội bộ
+
+#### 5.3.2. Cài đặt Coturn
 
 ```bash
 # Ubuntu/Debian
@@ -309,40 +440,178 @@ sudo apt-get install coturn
 
 # CentOS/RHEL
 sudo yum install coturn
+
+# Kiểm tra version
+turnserver --version
 ```
 
-#### 5.3.2. Cấu hình Coturn
+#### 5.3.3. Cấu hình Coturn
 
 File: `/etc/turnserver.conf`
 
 ```conf
-# Listening port
+# Listening port (STUN/TURN)
 listening-port=3478
+listening-ip=0.0.0.0  # Lắng nghe trên tất cả interfaces
 
-# Realm
+# Realm (domain của bạn)
 realm=epiccinema.io.vn
 
-# User credentials
+# User credentials (username:password)
+# Format: user=username:password
 user=videocall:2025
 
-# No authentication for local network (optional)
-no-auth
+# External IP (quan trọng cho VPS)
+# Thay bằng IP public của VPS
+external-ip=YOUR_VPS_PUBLIC_IP
 
-# Log file
+# Port range cho relay (quan trọng!)
+# Mở range này trong firewall
+relay-ip=0.0.0.0
+min-port=49152
+max-port=65535
+
+# Logging
 log-file=/var/log/turnserver.log
-
-# Verbose logging
 verbose
+no-stdout-log
+
+# Security
+# Không cho phép anonymous (bắt buộc auth)
+no-cli
+no-tls
+no-dtls
+
+# Performance
+total-quota=100  # Giới hạn số connections đồng thời
+user-quota=10    # Giới hạn mỗi user
 ```
 
-#### 5.3.2. Khởi động TURN Server
+**Lưu ý quan trọng**:
+- `external-ip`: Phải là IP public của VPS (không phải localhost)
+- `min-port` và `max-port`: Phải mở range này trong firewall
+- `user`: Format `username:password` (không hash)
+
+#### 5.3.4. Khởi động TURN Server
 
 ```bash
+# Khởi động service
 sudo systemctl start coturn
 sudo systemctl enable coturn
+
+# Kiểm tra status
+sudo systemctl status coturn
+
+# Xem logs
+sudo tail -f /var/log/turnserver.log
+```
+
+#### 5.3.5. Cấu hình Firewall cho TURN Server
+
+**Mở các ports cần thiết**:
+
+```bash
+# Port 3478 (STUN/TURN)
+sudo ufw allow 3478/tcp
+sudo ufw allow 3478/udp
+
+# Port range cho relay (49152-65535)
+sudo ufw allow 49152:65535/udp
+sudo ufw allow 49152:65535/tcp
+
+# Reload firewall
+sudo ufw reload
+```
+
+#### 5.3.6. Test TURN Server
+
+**Sử dụng tool online**:
+- https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/
+- Nhập TURN server credentials và test
+
+**Sử dụng command line**:
+```bash
+# Test STUN
+turnutils_stunclient epiccinema.io.vn
+
+# Test TURN (cần credentials)
+turnutils_peer -u videocall -w 2025 epiccinema.io.vn
+```
+
+**Kiểm tra từ code**:
+```javascript
+// Test trong browser console
+const pc = new RTCPeerConnection({
+  iceServers: [{
+    urls: 'turn:epiccinema.io.vn:3478',
+    username: 'videocall',
+    credential: '2025'
+  }]
+});
+
+pc.onicecandidate = (event) => {
+  if (event.candidate) {
+    console.log('ICE Candidate:', event.candidate);
+    // Kiểm tra type: 'relay' = TURN đang hoạt động
+  }
+};
+```
+
+#### 5.3.7. Troubleshooting TURN Server
+
+**Vấn đề: TURN server không hoạt động**
+
+**Kiểm tra**:
+```bash
+# 1. Service đang chạy?
+sudo systemctl status coturn
+
+# 2. Port đang listen?
+sudo netstat -tulpn | grep 3478
+
+# 3. Firewall đã mở?
+sudo ufw status
+
+# 4. Logs có lỗi?
+sudo tail -f /var/log/turnserver.log
+```
+
+**Lỗi thường gặp**:
+- ❌ `external-ip` chưa set → TURN không hoạt động đúng
+- ❌ Firewall chưa mở port range → Relay fail
+- ❌ Credentials sai → Authentication fail
+- ❌ `realm` không đúng → Connection reject
+
+#### 5.3.8. Tối ưu TURN Server
+
+**Giới hạn bandwidth**:
+```conf
+# Giới hạn bandwidth per user (KB/s)
+max-bps=1000000  # 1 Mbps
+```
+
+**Giới hạn connections**:
+```conf
+# Tổng số connections đồng thời
+total-quota=100
+
+# Mỗi user tối đa
+user-quota=10
+```
+
+**Monitoring**:
+```bash
+# Xem số lượng active sessions
+turnutils_peer -u videocall -w 2025 epiccinema.io.vn -s
+
+# Xem stats
+sudo turnadmin -l -b /var/lib/turn/turndb
 ```
 
 ### 5.4. Cấu hình Nginx (Reverse Proxy)
+
+> **Lưu ý**: Nginx chỉ cần cho Socket.IO server, không cần cho TURN server.
+> TURN server hoạt động độc lập trên port 3478.
 
 Nếu chạy Socket.IO server trên VPS, cần cấu hình Nginx để proxy:
 
@@ -720,17 +989,98 @@ pm2 logs epic-realtime
 - STUN/TURN server không accessible
 - Firewall chặn UDP ports
 - NAT traversal issues
+- **Thiếu TURN server trong production** (quan trọng!)
 
 **Giải pháp:**
+**Phân biệt lỗi**:
+
+**Local/Development (chỉ dùng STUN)**:
+- ✅ Cùng mạng LAN → Hoạt động tốt
+- ❌ Khác mạng → Có thể fail nếu có Symmetric NAT
+
+**Production/VPS (cần TURN)**:
+- ❌ Chỉ có STUN → **Sẽ fail** khi client ở mạng khác nhau
+- ✅ Có TURN → **Luôn thành công** (relay qua server)
+
 ```javascript
 // Kiểm tra ICE connection state
 peerConnection.oniceconnectionstatechange = () => {
   console.log('ICE state:', peerConnection.iceConnectionState);
-  // Nếu là 'failed' → Kiểm tra TURN server
+  
+  // Các trạng thái:
+  // - 'new': Đang tìm đường kết nối
+  // - 'checking': Đang kiểm tra candidates
+  // - 'connected': Đã kết nối (P2P hoặc relay)
+  // - 'completed': Hoàn tất
+  // - 'failed': Thất bại → Cần kiểm tra TURN server
+  // - 'disconnected': Mất kết nối
+  // - 'closed': Đã đóng
+  
+  if (peerConnection.iceConnectionState === 'failed') {
+    console.error('WebRTC connection failed!');
+    console.log('Có thể do:');
+    console.log('1. Thiếu TURN server (production)');
+    console.log('2. Firewall chặn ports');
+    console.log('3. TURN server không hoạt động');
+  }
+};
+
+// Kiểm tra ICE candidates
+peerConnection.onicecandidate = (event) => {
+  if (event.candidate) {
+    console.log('ICE Candidate:', event.candidate);
+    console.log('Type:', event.candidate.type);
+    // 'host' = P2P cùng mạng
+    // 'srflx' = STUN (server reflexive)
+    // 'relay' = TURN (relay) ← Cần cho production!
+    
+    if (event.candidate.type === 'relay') {
+      console.log('✅ TURN server đang hoạt động!');
+    }
+  } else {
+    console.log('✅ Đã gather hết ICE candidates');
+  }
 };
 
 // Test TURN server
 // Sử dụng: https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/
+// Nhập TURN credentials và kiểm tra có candidate type 'relay' không
+```
+
+**Debug checklist**:
+
+1. **Local testing (chỉ STUN)**:
+   ```javascript
+   const iceServers = [
+     { urls: 'stun:stun.l.google.com:19302' }
+   ];
+   ```
+   - ✅ Nếu cùng mạng → Hoạt động
+   - ❌ Nếu khác mạng → Có thể fail
+
+2. **Production (cần TURN)**:
+   ```javascript
+   const iceServers = [
+     { urls: 'stun:stun.l.google.com:19302' },
+     {
+       urls: 'turn:epiccinema.io.vn:3478',
+       username: 'videocall',
+       credential: '2025'
+     }
+   ];
+   ```
+   - ✅ Phải có TURN server
+   - ✅ TURN server phải accessible từ internet
+   - ✅ Firewall phải mở ports
+
+**Kiểm tra TURN server hoạt động**:
+```bash
+# Test từ command line
+turnutils_peer -u videocall -w 2025 epiccinema.io.vn
+
+# Test từ browser
+# Mở: https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/
+# Thêm TURN server và kiểm tra có candidate type 'relay'
 ```
 
 ### 9.3. Lỗi không có audio/video

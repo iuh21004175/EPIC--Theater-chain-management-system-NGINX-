@@ -547,10 +547,6 @@
             padding-right: 2.5rem;
         }
 
-        select:focus {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23ef4444' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-        }
-
         /* Enhanced Input Focus States */
         input[type="text"],
         input[type="number"],
