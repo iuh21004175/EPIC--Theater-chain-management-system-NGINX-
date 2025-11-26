@@ -282,10 +282,10 @@ async function loadTopPhim() {
                         </span>
                     </div>
                     <div class="flex-shrink-0">
-                        <img src="${phim.poster_url || '/images/default-poster.jpg'}" 
+                        <img src="${window.config.urlServerMinio}/${phim.poster_url}" 
                              alt="${phim.ten_phim}" 
                              class="w-16 h-24 object-cover rounded"
-                             onerror="this.src='/images/default-poster.jpg'">
+                             >
                     </div>
                     <div class="flex-grow min-w-0">
                         <h4 class="font-semibold text-gray-800 truncate">${phim.ten_phim || 'N/A'}</h4>

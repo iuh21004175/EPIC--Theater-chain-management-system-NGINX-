@@ -37,33 +37,40 @@
 
         public function tinhGiaGhe($loaiGheId, $ngay, $dinhDangPhim)
         {
-            // 1. Xác định ngày dựa trên URL
+            // Xác định loại ngày (Ngày thường / Cuối tuần)
             $date = Carbon::parse($ngay);
             $dayType = ($date->dayOfWeek === 0 || $date->dayOfWeek === 6) ? 'Cuối tuần' : 'Ngày thường';
 
-            // 2. Giá cơ bản theo dayType
+            // Giá cơ bản theo loại ngày
             $giaCoBan = QuyTac_GiaVe::where('trang_thai', 1)
-                ->whereRaw("JSON_CONTAINS(dieu_kien, ?, '$')", 
-                            [json_encode(['type'=>'day_type','value'=>$dayType])])
+                ->whereRaw("JSON_CONTAINS(dieu_kien, ?, '$')", [
+                    json_encode(['type' => 'day_type', 'value' => $dayType])
+                ])
                 ->value('gia_tri') ?? 0;
 
-            // 3. Giá cộng thêm định dạng phim
-            $giaPhim = 0;
-            // Kiểm tra trực tiếp giá trị của tham số, không cần kiểm tra sự tồn tại nữa
+            // Giá cộng thêm theo định dạng phim (2D, 3D, IMAX,...)
             $giaPhim = QuyTac_GiaVe::where('trang_thai', 1)
-                ->whereRaw("JSON_CONTAINS(dieu_kien, ?, '$')", 
-                            [json_encode(['type'=>'movie_format','value'=>$dinhDangPhim])])
+                ->whereRaw("JSON_CONTAINS(dieu_kien, ?, '$')", [
+                    json_encode(['type' => 'movie_format', 'value' => $dinhDangPhim])
+                ])
                 ->value('gia_tri') ?? 0;
-            
-            // 4. Phụ thu theo loại ghế
+
+            // Lấy thông tin loại ghế từ ID (do frontend chỉ gửi ID)
             $loaiGhe = Ghe::find($loaiGheId);
             if (!$loaiGhe) {
                 throw new \Exception("Loại ghế không tồn tại");
             }
-            $phuThu = $loaiGhe->phu_thu ?? 0;
 
-            // 5. Tổng giá
-            return $giaCoBan + $giaPhim + $phuThu;
+            // Giá phụ thu theo tên loại ghế (trùng với JSON value: "VIP", "NORMAL", "PREMIUM")
+            $giaGhe = QuyTac_GiaVe::where('trang_thai', 1)
+                ->whereRaw("JSON_CONTAINS(dieu_kien, ?, '$')", [
+                    json_encode(['type' => 'seat_type', 'value' => $loaiGhe->ten])
+                ])
+                ->value('gia_tri') ?? 0;
+
+            // Tổng giá
+            $tong = $giaCoBan + $giaPhim + $giaGhe;
+            return $tong;
         }
     }
 ?>

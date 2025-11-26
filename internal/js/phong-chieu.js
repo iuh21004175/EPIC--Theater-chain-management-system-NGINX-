@@ -97,19 +97,19 @@ document.addEventListener('DOMContentLoaded', function() {
             let roomTypeClass = '';
             switch (room.loai_phongchieu) {
                 case '2d':
-                    roomTypeName = '2D';
+                    roomTypeName = '2d';
                     roomTypeClass = 'type-2d';
                     break;
                 case '3d':
-                    roomTypeName = '3D';
+                    roomTypeName = '3d';
                     roomTypeClass = 'type-3d';
                     break;
                 case 'imax-2d':
-                    roomTypeName = 'IMAX 2D';
+                    roomTypeName = 'imax-2d';
                     roomTypeClass = 'type-imax-2d';
                     break;
                 case 'imax-3d':
-                    roomTypeName = 'IMAX 3D';
+                    roomTypeName = 'imax-3d';
                     roomTypeClass = 'type-imax-3d';
                     break;
                 default:

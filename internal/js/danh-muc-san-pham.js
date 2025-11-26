@@ -209,6 +209,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Thêm event listener cho nút "Thêm danh mục mới"
+    const btnAddCategory = document.getElementById('btn-add-category');
+    if (btnAddCategory) {
+        btnAddCategory.addEventListener('click', function() {
+            // Reset form
+            const addCategoryForm = document.getElementById('add-category-form');
+            if (addCategoryForm) {
+                addCategoryForm.reset();
+            }
+            // Ẩn các thông báo lỗi
+            const nameError = document.getElementById('category-name-error');
+            if (nameError) {
+                nameError.classList.add('hidden');
+            }
+            // Mở modal
+            openModal(modals.addCategory);
+        });
+    }
+
+    // Close modal buttons
+    document.querySelectorAll('.modal-close-btn, .modal-close, .modal-overlay').forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
+            closeModal(modals.addCategory);
+            closeModal(modals.editCategory);
+        });
+    });
+
     // fetchCategories(); // Removed - now handled by tab switching
     
     // Export functions for use in tab-loader.js
@@ -217,5 +244,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.attachCategoryClickHandlers = attachCategoryClickHandlers;
     window.loadCategoryData = loadCategoryData;
     window.openModal = openModal;
+    window.closeModal = closeModal;
     window.modals = modals;
 });

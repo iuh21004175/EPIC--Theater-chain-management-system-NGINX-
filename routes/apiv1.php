@@ -108,7 +108,7 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     $r->addRoute('POST', '/san-pham', [Ctrl_SanPhamAnUong::class, 'themSanPham', ['Quản lý rạp']]);
     $r->addRoute('GET', '/san-pham', [Ctrl_SanPhamAnUong::class, 'docSanPham', ['Quản lý rạp']]);
     $r->addRoute('GET', '/san-pham/{id:\d+}', [Ctrl_SanPhamAnUong::class, 'docSanPham', ['Quản lý rạp']]);
-    $r->addRoute('PUT', '/san-pham/{id:\d+}', [Ctrl_SanPhamAnUong::class, 'suaSanPham', ['Quản lý rạp']]);
+    $r->addRoute(['PUT', 'POST'], '/san-pham/{id:\d+}', [Ctrl_SanPhamAnUong::class, 'suaSanPham', ['Quản lý rạp']]);
     $r->addRoute('GET', '/nhat-ky-suat-chieu', [Ctrl_SuatChieu::class, 'docNhatKy', ['Quản lý rạp', 'Quản lý chuỗi rạp']]);
     $r->addRoute('PUT', '/nhat-ky-suat-chieu/rap-da-xem', [Ctrl_SuatChieu::class, 'quanLyRapXemNhatKy', ['Quản lý rạp']]);
     $r->addRoute('PUT', '/nhat-ky-suat-chieu/chuoi-rap-da-xem', [Ctrl_SuatChieu::class, 'quanLyChuoiXemNhatKy', ['Quản lý chuỗi rạp']]);

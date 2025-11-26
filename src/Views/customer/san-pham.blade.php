@@ -13,7 +13,39 @@
 
     <!-- Main -->
     <main class="container mx-auto max-w-screen-xl px-4 py-10 flex-1">
-        <h2 class="text-2xl font-bold mb-6 text-gray-900">🍿 Đồ ăn & Thức uống</h2>
+        <!-- Hero section -->
+        <section class="mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <p class="inline-flex items-center text-xs font-semibold tracking-wide uppercase text-amber-600 bg-amber-100 px-3 py-1 rounded-full border border-amber-300 mb-3">
+                        <span class="mr-1.5 text-lg">✨</span> Ưu đãi đồ ăn &amp; thức uống tại rạp
+                    </p>
+                    <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900">
+                        Đồ ăn & Thức uống
+                    </h1>
+                    <p class="mt-3 text-sm md:text-base text-gray-600 max-w-xl">
+                        Chọn rạp yêu thích của bạn và thưởng thức bắp rang, nước uống, snack và nhiều món
+                        ăn hấp dẫn khác khi xem phim tại EPIC Cinemas.
+                    </p>
+                </div>
+                <div class="hidden md:flex items-center gap-3 text-sm text-gray-600 bg-white border border-gray-100 rounded-2xl px-4 py-3 shadow-sm">
+                    <div class="flex -space-x-2">
+                        <span class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-red-500 border border-white flex items-center justify-center text-xs font-bold text-white">
+                            🎬
+                        </span>
+                        <span class="w-8 h-8 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 border border-white flex items-center justify-center text-xs font-bold text-white">
+                            🍿
+                        </span>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-amber-600">Combo siêu tiết kiệm</p>
+                        <p class="text-xs text-gray-500">Thêm đồ ăn nhanh ngay trong vài cú click.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Product list -->
         <section id="product-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></section>
     </main>
 
@@ -24,28 +56,60 @@
 
 
     <!-- Modal chọn rạp -->
-    <div id="cinemaModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-lg w-[90%] max-w-md p-6 relative">
-            <h3 class="text-xl font-semibold mb-4 text-gray-800">🎬 Chọn rạp phim</h3>
-            <select id="cinema-select" class="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:border-red-600 outline-none">
+    <div id="cinemaModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white text-gray-900 rounded-2xl shadow-2xl w-[90%] max-w-md p-6 relative border border-gray-200">
+            <h3 class="text-xl font-bold mb-4 text-gray-900 flex items-center gap-2">
+                <span class="text-2xl">🎬</span>
+                <span>Chọn rạp phim</span>
+            </h3>
+            <p class="text-sm text-gray-600 mb-3">
+                Vui lòng chọn rạp trước khi thêm đồ ăn & thức uống vào giỏ hàng.
+            </p>
+            <select
+                id="cinema-select"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 mb-4 text-gray-700 text-sm focus:border-red-600 focus:ring-1 focus:ring-red-500 outline-none"
+            >
                 <option value="">-- Chọn rạp --</option>
             </select>
-            <button id="choose-cinema" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-500 transition">
+            <button
+                id="choose-cinema"
+                class="w-full bg-gradient-to-r from-red-600 to-amber-500 text-white py-2.5 rounded-xl font-semibold text-sm
+                       hover:from-red-500 hover:to-amber-400 transition-all duration-200 shadow-md shadow-red-900/30"
+            >
                 Xác nhận
             </button>
         </div>
     </div>
 
     <!-- Giỏ hàng -->
-    <div class="fixed bottom-4 right-4 w-80 bg-white border border-gray-200 rounded-xl shadow-lg p-4">
-        <h4 class="font-bold text-gray-900 mb-2">🛒 Giỏ hàng</h4>
-        <ul id="cart-items" class="divide-y divide-gray-200 max-h-60 overflow-y-auto text-sm"></ul>
-        <div class="flex items-center justify-between mt-3">
-            <span class="font-semibold">Tổng:</span>
-            <span id="cart-total" class="font-bold text-red-600">0 đ</span>
+    <div class="fixed bottom-4 right-4 w-80 max-w-full bg-white border border-gray-200 rounded-2xl shadow-2xl p-4
+                sm:right-4 sm:left-auto sm:translate-x-0
+                max-sm:left-1/2 max-sm:-translate-x-1/2">
+        <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold text-sm text-gray-900 flex items-center gap-2">
+                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-600 text-sm">
+                    🛒
+                </span>
+                Giỏ hàng
+            </h4>
+            <span class="text-[11px] uppercase tracking-wide text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
+                Đồ ăn & thức uống
+            </span>
         </div>
-        <button id="checkout-btn" class="mt-3 w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-500 transition">
-            Thanh toán
+        <ul id="cart-items" class="divide-y divide-gray-200 max-h-60 overflow-y-auto text-xs sm:text-sm pr-1"></ul>
+        <div class="flex items-center justify-between mt-3 text-sm">
+            <span class="font-medium text-gray-700">Tổng:</span>
+            <span id="cart-total" class="font-extrabold text-red-600 text-lg">0 đ</span>
+        </div>
+        <button
+            id="checkout-btn"
+            class="mt-3 w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-amber-500 text-white py-2.5 rounded-xl
+                   text-sm font-semibold shadow-lg hover:from-red-500 hover:to-amber-400
+                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 focus:ring-offset-white
+                   transition-all duration-200"
+        >
+            <span class="text-base">💳</span>
+            <span>Thanh toán ngay</span>
         </button>
     </div>
 
@@ -105,7 +169,10 @@
 
     <script>
 document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById('btn-open-chat').style.display = 'none';
+    const btnOpenChat = document.getElementById('btn-open-chat');
+    if (btnOpenChat) {
+        btnOpenChat.style.display = 'none';
+    }
     const urlMinio = "{{ $_ENV['MINIO_SERVER_URL'] }}";
     const baseUrl = "{{ $_ENV['URL_WEB_BASE'] }}";
     const cinemaModal = document.getElementById("cinemaModal");
@@ -164,24 +231,35 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 products.forEach(p => {
                     productList.innerHTML += `
-                    <div class="bg-white rounded-xl shadow hover:shadow-md transition overflow-hidden">
-                       <div class="w-32 h-32">
+                    <div class="group bg-slate-900/80 border border-slate-700/70 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1
+                                transition-all duration-200 overflow-hidden flex flex-col relative">
+                        <div class="w-32 h-32 mx-auto mt-6 mb-3 rounded-xl overflow-hidden ring-2 ring-slate-800 group-hover:ring-amber-400/80 transition">
                             <img src="${urlMinio}/${p.hinh_anh}" alt="${p.ten}" 
-                                class="w-full h-full object-cover rounded-md">
-                            </div>
-                        <div class="p-3">
-                            <h5 class="font-semibold text-gray-900">${p.ten}</h5>
-                            <p class="text-red-600 font-bold">${parseInt(p.gia).toLocaleString()} đ</p>
-                            <div class="flex items-center gap-3 mt-2">
-                                <button class="minus bg-gray-200 w-10 h-10 text-lg font-bold flex items-center justify-center rounded-md hover:bg-red-500 hover:text-white transition"
-                                    data-id="${p.id}" data-price="${p.gia}" data-name="${p.ten}">
-                                    -
-                                </button>
-                                <span id="qty-${p.id}" class="w-8 text-center font-semibold text-lg">0</span>
-                                <button class="plus bg-gray-200 w-10 h-10 text-lg font-bold flex items-center justify-center rounded-md hover:bg-red-500 hover:text-white transition"
-                                    data-id="${p.id}" data-price="${p.gia}" data-name="${p.ten}">
-                                    +
-                                </button>
+                                class="w-full h-full object-cover">
+                        </div>
+                        <div class="px-3 pb-3 pt-1 flex-1 flex flex-col">
+                            <h5 class="font-semibold text-[13px] text-white line-clamp-2 min-h-[2.5rem] group-hover:text-amber-200 transition">
+                                ${p.ten}
+                            </h5>
+                            <p class="mt-2 text-sm font-bold text-amber-300">
+                                ${parseInt(p.gia).toLocaleString()} đ
+                            </p>
+                            <div class="flex items-center justify-between gap-2 mt-3">
+                                <div class="flex items-center gap-2 bg-slate-800/80 rounded-full px-2 py-1">
+                                    <button class="minus w-9 h-9 text-lg font-extrabold flex items-center justify-center rounded-full
+                                                   bg-slate-900 text-gray-100 border border-slate-600
+                                                   hover:bg-red-500 hover:border-red-400 hover:text-white transition"
+                                        data-id="${p.id}" data-price="${p.gia}" data-name="${p.ten}">
+                                        -
+                                    </button>
+                                    <span id="qty-${p.id}" class="w-7 text-center font-semibold text-sm text-gray-100">0</span>
+                                    <button class="plus w-9 h-9 text-lg font-extrabold flex items-center justify-center rounded-full
+                                                   bg-slate-900 text-gray-100 border border-slate-600
+                                                   hover:bg-red-500 hover:border-red-400 hover:text-white transition"
+                                        data-id="${p.id}" data-price="${p.gia}" data-name="${p.ten}">
+                                        +
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>`;
@@ -355,10 +433,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p class="text-xs text-gray-500">${item.price.toLocaleString()} đ</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button class="cart-minus bg-gray-200 w-10 h-10 text-lg font-bold flex items-center justify-center rounded-md hover:bg-red-500 hover:text-white transition" data-id="${id}">-</button>
-                    <span class="w-6 text-center">${item.qty}</span>
-                    <button class="cart-plus bg-gray-200 w-10 h-10 text-lg font-bold flex items-center justify-center rounded-md hover:bg-red-500 hover:text-white transition" data-id="${id}">+</button>
-                    <button class="cart-remove text-red-500 ml-2" data-id="${id}"><i class="fa fa-trash"></i></button>
+                    <button
+                        class="cart-minus w-9 h-9 text-lg font-extrabold flex items-center justify-center rounded-full
+                               bg-slate-800 text-gray-100 border border-slate-600
+                               hover:bg-red-500 hover:border-red-400 hover:text-white transition"
+                        data-id="${id}"
+                    >-</button>
+                    <span class="w-6 text-center font-semibold text-sm text-gray-100">${item.qty}</span>
+                    <button
+                        class="cart-plus w-9 h-9 text-lg font-extrabold flex items-center justify-center rounded-full
+                               bg-slate-800 text-gray-100 border border-slate-600
+                               hover:bg-red-500 hover:border-red-400 hover:text-white transition"
+                        data-id="${id}"
+                    >+</button>
+                    <button class="cart-remove text-red-400 hover:text-red-300 ml-2 transition" data-id="${id}">
+                        <i class="fa fa-trash"></i>
+                    </button>
                 </div>
             </li>`;
             total += item.qty * item.price;

@@ -120,13 +120,13 @@ DB_CONFIG = get_db_config()
 LOAI_PHONG_CHIEU = ['2D', '3D', 'IMAX', '4DX']
 TRANG_THAI_PHONG = [1, 1, 1, 0]  # 75% hoạt động, 25% bảo trì
 
-# Cấu hình sơ đồ ghế (số hàng x số cột)
-SO_DO_GHE_PRESETS = [
-    {'rows': 8, 'cols': 12, 'name': 'Nhỏ'},      # 96 ghế
-    {'rows': 10, 'cols': 14, 'name': 'Vừa'},    # 140 ghế
-    {'rows': 12, 'cols': 16, 'name': 'Lớn'},    # 192 ghế
-    {'rows': 15, 'cols': 20, 'name': 'Rất lớn'} # 300 ghế
-]
+# Cấu hình sơ đồ ghế mặc định: 11x11
+SO_HANG = 11
+SO_COT = 11
+
+# Vị trí lối đi
+LOI_DI_NGANG = 5  # Hàng giữa (index 5, hàng F) - lối đi ngang
+LOI_DI_DOC = 5    # Cột giữa (index 5, cột 6) - lối đi dọc
 
 
 def get_rapphim_ids(cursor):
@@ -139,16 +139,23 @@ def get_rapphim_ids(cursor):
         return [(row[0], row[1]) for row in results] if results else []
 
 
-def get_loaighe_ids(cursor):
-    """Lấy danh sách ID loại ghế"""
-    cursor.execute("SELECT id FROM loaighe")
+def get_loaighe_by_name(cursor):
+    """Lấy ID loại ghế theo tên"""
+    loaighe_map = {}
+    cursor.execute("SELECT id, ten FROM loaighe")
     results = cursor.fetchall()
     if results:
-        if USE_MYSQL_CONNECTOR:
-            return [row[0] for row in results]
-        else:
-            return [row[0] for row in results]
-    return []
+        for row in results:
+            loaighe_id = row[0]
+            ten = row[1].upper() if row[1] else ''
+            # Tìm các loại ghế phổ biến
+            if 'VIP' in ten or 'V.I.P' in ten:
+                loaighe_map['VIP'] = loaighe_id
+            elif 'PREMIUM' in ten or 'PREMIUM' in ten:
+                loaighe_map['PREMIUM'] = loaighe_id
+            elif 'NORMAL' in ten or 'NORMAL' in ten or 'BÌNH THƯỜNG' in ten or 'REGULAR' in ten:
+                loaighe_map['NORMAL'] = loaighe_id
+    return loaighe_map
 
 
 def generate_seat_number(row_idx, col_idx):
@@ -158,18 +165,37 @@ def generate_seat_number(row_idx, col_idx):
     return seat_number
 
 
-def create_seat_layout(cursor, phongchieu_id, so_hang, so_cot, loaighe_ids):
-    """Tạo sơ đồ ghế cho phòng chiếu"""
+def get_seat_type(row_idx, col_idx, loaighe_map):
+    """Xác định loại ghế dựa trên vị trí"""
+    # Hàng cuối (index 10): Premium
+    if row_idx == SO_HANG - 1:
+        return loaighe_map.get('PREMIUM')
+    # Hàng gần cuối (index 9): VIP
+    elif row_idx == SO_HANG - 2:
+        return loaighe_map.get('VIP')
+    # Còn lại: Bình thường
+    else:
+        return loaighe_map.get('NORMAL')
+
+
+def create_seat_layout(cursor, phongchieu_id, loaighe_map):
+    """Tạo sơ đồ ghế cho phòng chiếu với layout 11x11"""
     seats_created = 0
     
-    for row in range(so_hang):
-        for col in range(so_cot):
+    for row in range(SO_HANG):
+        for col in range(SO_COT):
+            # Bỏ qua lối đi ngang (hàng giữa)
+            if row == LOI_DI_NGANG:
+                continue
+            
+            # Bỏ qua lối đi dọc (cột giữa)
+            if col == LOI_DI_DOC:
+                continue
+            
             so_ghe = generate_seat_number(row, col)
             
-            # Chọn loại ghế ngẫu nhiên (70% có loại ghế, 30% null)
-            loaighe_id = None
-            if loaighe_ids and random.random() < 0.7:
-                loaighe_id = random.choice(loaighe_ids)
+            # Xác định loại ghế dựa trên vị trí
+            loaighe_id = get_seat_type(row, col, loaighe_map)
             
             try:
                 cursor.execute("""
@@ -185,35 +211,34 @@ def create_seat_layout(cursor, phongchieu_id, so_hang, so_cot, loaighe_ids):
 
 
 def create_phong_chieu(cursor, connection, id_rapphim, ten_rap, phong_so):
-    """Tạo một phòng chiếu với sơ đồ ghế"""
-    # Chọn cấu hình sơ đồ ghế ngẫu nhiên
-    config = random.choice(SO_DO_GHE_PRESETS)
-    so_hang = config['rows']
-    so_cot = config['cols']
-    
+    """Tạo một phòng chiếu với sơ đồ ghế 11x11"""
     # Tạo thông tin phòng chiếu
     ten_phong = f"Phòng {phong_so}"
     ma_phong = f"P{phong_so:02d}"
     loai_phong = random.choice(LOAI_PHONG_CHIEU)
     trang_thai = random.choice(TRANG_THAI_PHONG)
-    mo_ta = f"Phòng chiếu {loai_phong} với {so_hang} hàng x {so_cot} cột"
+    mo_ta = f"Phòng chiếu {loai_phong} với {SO_HANG} hàng x {SO_COT} cột (có lối đi)"
     
     try:
+        # Lấy danh sách loại ghế theo tên
+        loaighe_map = get_loaighe_by_name(cursor)
+        
+        if not loaighe_map:
+            print(f"    Cảnh báo: Không tìm thấy loại ghế trong database!")
+            print(f"    Vui lòng đảm bảo có các loại ghế: VIP, PREMIUM, và NORMAL/THƯỜNG")
+        
         # Tạo phòng chiếu
         cursor.execute("""
             INSERT INTO phongchieu 
             (ten, ma_phong, mo_ta, loai_phongchieu, trang_thai, sohang_ghe, socot_ghe, so_luong_ghe, id_rapphim, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-        """, (ten_phong, ma_phong, mo_ta, loai_phong, trang_thai, so_hang, so_cot, 0, id_rapphim))
+        """, (ten_phong, ma_phong, mo_ta, loai_phong, trang_thai, SO_HANG, SO_COT, 0, id_rapphim))
         
         phongchieu_id = cursor.lastrowid
         
-        # Lấy danh sách loại ghế
-        loaighe_ids = get_loaighe_ids(cursor)
-        
-        # Tạo sơ đồ ghế
-        print(f"    Đang tạo sơ đồ ghế ({so_hang} hàng x {so_cot} cột)...")
-        seats_created = create_seat_layout(cursor, phongchieu_id, so_hang, so_cot, loaighe_ids)
+        # Tạo sơ đồ ghế với layout 11x11
+        print(f"    Đang tạo sơ đồ ghế ({SO_HANG} hàng x {SO_COT} cột) với lối đi...")
+        seats_created = create_seat_layout(cursor, phongchieu_id, loaighe_map)
         
         # Cập nhật số lượng ghế
         cursor.execute("""
@@ -224,11 +249,14 @@ def create_phong_chieu(cursor, connection, id_rapphim, ten_rap, phong_so):
         
         connection.commit()
         print(f"    ✓ Đã tạo phòng chiếu: {ten_phong} ({ma_phong}) - {seats_created} ghế")
+        print(f"      (Hàng cuối: Premium, Hàng gần cuối: VIP, Còn lại: Bình thường)")
         return True
         
     except Exception as e:
         connection.rollback()
         print(f"    ✗ Lỗi tạo phòng chiếu: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 

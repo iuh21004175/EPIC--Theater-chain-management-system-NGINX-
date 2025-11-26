@@ -537,16 +537,6 @@
         .form-input-with-icon:not(:placeholder-shown) + .form-input-icon {
             color: #ef4444;
         }
-
-        /* Enhanced Select Styling */
-        select {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-            padding-right: 2.5rem;
-        }
-
         /* Enhanced Input Focus States */
         input[type="text"],
         input[type="number"],
@@ -810,41 +800,85 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6 mb-6">
-        <div class="md:flex md:items-center md:justify-between">
-            <div class="flex-1 min-w-0">
-                <h2 class="text-lg leading-6 font-medium text-gray-900 mb-4">Bộ lọc</h2>
-            </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 px-6 py-5 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg leading-6 font-semibold text-gray-900">Bộ lọc phòng chiếu</h2>
         </div>
-        <div class="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
-            <div class="sm:col-span-2">
-                <label for="filter-status" class="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-                <select id="filter-status" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm rounded-md">
-                    <option value="all">Tất cả trạng thái</option>
-                    <option value="1">Đang hoạt động</option>
-                    <option value="0">Đang bảo trì</option>
-                    <option value="-1">Ngưng hoạt động</option>
-                </select>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Filter: Status -->
+            <div>
+                <label for="filter-status" class="block text-sm font-medium text-gray-700 mb-2">
+                    Trạng thái
+                </label>
+                <div class="relative">
+                    <select
+                        id="filter-status"
+                        class="block w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 hover:border-gray-400 cursor-pointer"
+                    >
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="1">Đang hoạt động</option>
+                        <option value="0">Đang bảo trì</option>
+                        <option value="-1">Ngưng hoạt động</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
             </div>
-            <div class="sm:col-span-2">
-                <label for="filter-type" class="block text-sm font-medium text-gray-700 mb-1">Loại phòng</label>
-                <select id="filter-type" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm rounded-md">
-                    <option value="all">Tất cả loại phòng</option>
-                    <option value="2D">2D</option>
-                    <option value="3D">3D</option>
-                    <option value="IMAX 2D">IMAX 2D</option>
-                    <option value="IMAX 3D">IMAX 3D</option>
-                </select>
+
+            <!-- Filter: Room type -->
+            <div>
+                <label for="filter-type" class="block text-sm font-medium text-gray-700 mb-2">
+                    Loại phòng
+                </label>
+                <div class="relative">
+                    <select
+                        id="filter-type"
+                        class="block w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 hover:border-gray-400 cursor-pointer"
+                    >
+                        <option value="all">Tất cả loại phòng</option>
+                        <option value="2D">2D</option>
+                        <option value="3D">3D</option>
+                        <option value="IMAX 2D">IMAX 2D</option>
+                        <option value="IMAX 3D">IMAX 3D</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
             </div>
-            <div class="sm:col-span-2">
-                <label for="filter-search" class="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
-                <div class="flex rounded-md shadow-sm">
-                    <input type="text" id="filter-search" class="focus:ring-red-500 focus:border-red-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300" placeholder="Tên hoặc mã phòng...">
+
+            <!-- Filter: Search -->
+            <div>
+                <label for="filter-search" class="block text-sm font-medium text-gray-700 mb-2">
+                    Tìm kiếm
+                </label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400 group-focus-within:text-red-500 transition-colors duration-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input
+                        type="text"
+                        id="filter-search"
+                        class="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 hover:border-gray-400"
+                        placeholder="Tên hoặc mã phòng..."
+                    >
                 </div>
             </div>
         </div>
-        <div class="flex justify-end mt-4">
-            <button type="button" id="btn-apply-filters" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+
+        <div class="flex justify-end mt-5">
+            <button
+                type="button"
+                id="btn-apply-filters"
+                class="inline-flex items-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+            >
                 <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
                 </svg>

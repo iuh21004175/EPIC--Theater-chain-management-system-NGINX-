@@ -37,6 +37,13 @@
             visibility: visible;
         }
     </style>
+    <script>
+        window.config = {
+            url: "{{ $_ENV['URL_WEB_BASE'] }}",
+            socketUrl: "{{ $_ENV['URL_SERVER_REALTIME'] }}",
+            urlServerMinio: "{{ $_ENV['MINIO_SERVER_URL'] }}",
+        }
+    </script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Header -->

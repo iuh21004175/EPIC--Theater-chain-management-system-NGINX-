@@ -7,10 +7,21 @@ Yêu cầu:
     - Python 3.6+
     - mysql-connector-python: pip install mysql-connector-python (khuyến nghị, hỗ trợ UTF-8 tốt)
     - hoặc pymysql: pip install pymysql
+    - googlesearch-python: pip install googlesearch-python (để tìm kiếm Google)
 
 Cách sử dụng:
     1. Cài đặt dependencies (khuyến nghị):
        pip install mysql-connector-python
+       
+       # Chọn 1 trong 2 cách sau:
+       # Cách 1: Sử dụng googlesearch-python (không cần API key)
+       pip install googlesearch-python
+       
+       # Cách 2: Sử dụng Google Custom Search API (cần API key)
+       pip install google-api-python-client
+       # Thêm vào file .env:
+       # GOOGLE_API_KEY=your_api_key_here
+       # GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id_here
     
     2. Chạy script:
        python fake_tintuc.py [số_lượng_mỗi_rạp]
@@ -22,9 +33,19 @@ Cách sử dụng:
 Lưu ý:
     - Script sẽ tạo tin tức cho TỪNG rạp phim
     - Mỗi rạp sẽ có số lượng tin tức riêng
-    - Script sẽ tìm tin tức thật từ web về phim, diễn viên, đạo diễn
+    - Script sử dụng Google Search để tìm tin tức thật về phim, diễn viên, đạo diễn
     - Mỗi tin tức sẽ được gán cho một tác giả từ rạp đó
     - Trạng thái tin tức: 2 (Đã duyệt) để hiển thị ngay
+    
+    Cấu hình Google Search (chọn 1 trong 2 cách):
+    1. Sử dụng googlesearch-python (không cần API key):
+       pip install googlesearch-python
+    
+    2. Sử dụng Google Custom Search API (cần API key, chính xác hơn):
+       - Thêm vào file .env:
+         GOOGLE_API_KEY=your_api_key_here
+         GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id_here
+       - Cài đặt: pip install google-api-python-client
 """
 
 try:
@@ -49,6 +70,31 @@ import sys
 import re
 from datetime import datetime
 from html import unescape
+import time
+
+# Import Google Search
+HAS_GOOGLE_SEARCH = False
+HAS_GOOGLE_API = False
+google_search = None
+google_api_service = None
+
+# Thử import googlesearch-python (không cần API key)
+try:
+    from googlesearch import search as google_search
+    HAS_GOOGLE_SEARCH = True
+except ImportError:
+    try:
+        from googlesearch_python import search as google_search
+        HAS_GOOGLE_SEARCH = True
+    except ImportError:
+        pass
+
+# Thử import Google Custom Search API (cần API key)
+try:
+    from googleapiclient.discovery import build
+    HAS_GOOGLE_API = True
+except ImportError:
+    pass
 
 # Thêm đường dẫn để import các module khác nếu cần
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -125,11 +171,27 @@ def get_db_config():
 
 DB_CONFIG = get_db_config()
 
+# Cấu hình Google Search API (nếu sử dụng Custom Search API)
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', '')
+GOOGLE_SEARCH_ENGINE_ID = os.getenv('GOOGLE_SEARCH_ENGINE_ID', '')
+
+# Khởi tạo Google Custom Search API service (nếu có API key)
+if HAS_GOOGLE_API and GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID:
+    try:
+        google_api_service = build("customsearch", "v1", developerKey=GOOGLE_API_KEY)
+        print(f"✓ Đã khởi tạo Google Custom Search API (sử dụng API key)")
+    except Exception as e:
+        print(f"⚠ Không thể khởi tạo Google Custom Search API: {e}")
+        google_api_service = None
+elif GOOGLE_API_KEY or GOOGLE_SEARCH_ENGINE_ID:
+    print("⚠ Cảnh báo: Thiếu GOOGLE_API_KEY hoặc GOOGLE_SEARCH_ENGINE_ID trong .env")
+    print("   Sẽ sử dụng googlesearch-python (không cần API key) nếu đã cài đặt")
+
 
 def get_phim_info(cursor):
-    """Lấy danh sách phim với thông tin diễn viên và đạo diễn"""
+    """Lấy danh sách phim với thông tin diễn viên, đạo diễn và poster_url"""
     cursor.execute("""
-        SELECT id, ten_phim, dao_dien, dien_vien 
+        SELECT id, ten_phim, dao_dien, dien_vien, poster_url 
         FROM phim 
         WHERE trang_thai IN (0, 1)
         ORDER BY RAND()
@@ -142,7 +204,8 @@ def get_phim_info(cursor):
                 'id': row[0],
                 'ten_phim': row[1] or '',
                 'dao_dien': row[2] or '',
-                'dien_vien': row[3] or ''
+                'dien_vien': row[3] or '',
+                'poster_url': row[4] if len(row) > 4 else None
             }
             for row in results
         ]
@@ -152,7 +215,8 @@ def get_phim_info(cursor):
                 'id': row[0],
                 'ten_phim': row[1] or '',
                 'dao_dien': row[2] or '',
-                'dien_vien': row[3] or ''
+                'dien_vien': row[3] or '',
+                'poster_url': row[4] if len(row) > 4 else None
             }
             for row in results
         ]
@@ -211,60 +275,286 @@ def clean_html(text):
     return text
 
 
-def extract_content_from_search_results(search_results):
-    """Trích xuất nội dung từ kết quả tìm kiếm"""
-    if not search_results:
-        return None, None
+def extract_content_from_google_api_results(items):
+    """Trích xuất nội dung từ kết quả Google Custom Search API
     
-    # Lấy snippet đầu tiên làm nội dung
-    snippets = []
-    for result in search_results[:3]:  # Lấy 3 kết quả đầu
-        snippet = result.get('snippet', '') or result.get('description', '')
-        if snippet:
-            snippets.append(clean_html(snippet))
+    Args:
+        items: Danh sách items từ Google Custom Search API
     
-    # Kết hợp các snippet
-    content = ' '.join(snippets)
+    Returns:
+        tuple: (title, content, image_url) hoặc (None, None, None) nếu không có
+    """
+    if not items or len(items) == 0:
+        return None, None, None
     
-    # Lấy title từ kết quả đầu tiên
-    title = None
-    if search_results:
-        title = search_results[0].get('title', '') or search_results[0].get('name', '')
-        title = clean_html(title)
+    # Lấy item đầu tiên
+    first_item = items[0]
+    title = first_item.get('title', 'Tin tức mới')
+    snippet = first_item.get('snippet', '')
+    link = first_item.get('link', '')
     
-    return title, content
+    # Lấy ảnh từ pagemap hoặc metatags
+    image_url = None
+    pagemap = first_item.get('pagemap', {})
+    if pagemap:
+        # Thử lấy từ cse_image
+        cse_images = pagemap.get('cse_image', [])
+        if cse_images and len(cse_images) > 0:
+            image_url = cse_images[0].get('src', None)
+        # Nếu không có, thử lấy từ metatags
+        if not image_url:
+            metatags = pagemap.get('metatags', [])
+            if metatags and len(metatags) > 0:
+                image_url = metatags[0].get('og:image') or metatags[0].get('twitter:image')
+    
+    # Tạo content từ các items - kết hợp nhiều snippet để nội dung phong phú hơn
+    content_parts = []
+    
+    # Thêm snippet từ item đầu tiên (nội dung chính)
+    if snippet:
+        snippet_cleaned = clean_html(snippet)
+        # Chia snippet thành các đoạn nếu dài
+        if len(snippet_cleaned) > 200:
+            sentences = snippet_cleaned.split('. ')
+            paragraphs = []
+            current_para = []
+            for sentence in sentences:
+                if sentence.strip():
+                    current_para.append(sentence.strip())
+                    if len(' '.join(current_para)) > 200:
+                        paragraphs.append(' '.join(current_para) + '.')
+                        current_para = []
+            if current_para:
+                paragraphs.append(' '.join(current_para) + '.')
+            for para in paragraphs:
+                if para.strip():
+                    content_parts.append(f"<p>{para}</p>")
+        else:
+            content_parts.append(f"<p>{snippet_cleaned}</p>")
+    
+    # Thêm các snippet từ các items khác để làm phong phú nội dung
+    for i, item in enumerate(items[1:4], 2):  # Lấy 3 items tiếp theo
+        item_snippet = item.get('snippet', '')
+        if item_snippet:
+            snippet_cleaned = clean_html(item_snippet)
+            if snippet_cleaned and len(snippet_cleaned) > 30:  # Chỉ lấy snippet có nội dung
+                content_parts.append(f"<p>{snippet_cleaned}</p>")
+    
+    content = '\n'.join(content_parts) if content_parts else None
+    
+    return clean_html(title), content, image_url
 
 
-def search_news_about_topic(search_term, web_search_func=None):
-    """Tìm kiếm tin tức về một chủ đề (sử dụng web_search tool)
+def extract_content_from_google_results(urls, search_term=""):
+    """Trích xuất nội dung từ kết quả Google Search (googlesearch-python)
+    
+    Args:
+        urls: Danh sách URLs từ Google Search
+        search_term: Từ khóa tìm kiếm để tạo nội dung phong phú hơn
+    
+    Returns:
+        tuple: (title, content, image_url) hoặc (None, None, None) nếu không có
+    """
+    if not urls:
+        return None, None, None
+    
+    # Lấy URL đầu tiên để tạo title
+    first_url = urls[0] if urls else None
+    if not first_url:
+        return None, None, None
+    
+    # Tạo title từ URL và search_term
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(first_url)
+        domain = parsed.netloc.replace('www.', '')
+        # Tạo title từ search_term nếu có
+        if search_term:
+            # Tách loại và tên từ search_term (ví dụ: "diễn viên Phiravich")
+            parts = search_term.split(' ', 1)
+            if len(parts) == 2:
+                loai, ten = parts
+                title = f"Tin tức mới về {loai} {ten}"
+            else:
+                title = f"Tin tức về {search_term}"
+        else:
+            title = f"Tin tức từ {domain}"
+    except:
+        title = "Tin tức mới"
+    
+    # Không có ảnh từ googlesearch-python (chỉ có URLs)
+    image_url = None
+    
+    # Tạo content phong phú hơn từ URLs và search_term
+    content_parts = []
+    
+    # Thêm đoạn mở đầu dựa trên search_term
+    if search_term:
+        parts = search_term.split(' ', 1)
+        if len(parts) == 2:
+            loai, ten = parts
+            content_parts.append(f"<p>Trong thời gian gần đây, {loai} <strong>{ten}</strong> đã thu hút sự chú ý của công chúng và giới truyền thông với những dự án điện ảnh mới.</p>")
+            content_parts.append(f"<p>Các nguồn tin tức uy tín đã đưa tin về những hoạt động và thành tựu của {ten} trong ngành công nghiệp điện ảnh.</p>")
+    
+    # Thêm thông tin về các nguồn
+    content_parts.append(f"<p><strong>Các nguồn tin tức liên quan:</strong></p>")
+    for i, url in enumerate(urls[:3], 1):
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            domain = parsed.netloc.replace('www.', '')
+            path = parsed.path.strip('/').replace('/', ' - ')[:80] if parsed.path else ''
+            
+            if path:
+                content_parts.append(f"<p>- <strong>Nguồn {i}:</strong> {domain} - {path}</p>")
+            else:
+                content_parts.append(f"<p>- <strong>Nguồn {i}:</strong> {domain}</p>")
+        except:
+            content_parts.append(f"<p>- <strong>Nguồn {i}:</strong> {url[:50]}</p>")
+    
+    # Thêm đoạn kết
+    if search_term:
+        parts = search_term.split(' ', 1)
+        if len(parts) == 2:
+            loai, ten = parts
+            content_parts.append(f"<p>Hãy theo dõi các kênh thông tin chính thức để cập nhật những tin tức mới nhất về {loai} {ten} và các dự án sắp tới.</p>")
+    
+    content = '\n'.join(content_parts) if content_parts else None
+    
+    return title, content, image_url
+
+
+def get_image_url_for_topic(loai_chu_de, ten_chu_de, phim_list=None):
+    """Lấy URL ảnh cho chủ đề tin tức
+    
+    Args:
+        loai_chu_de: Loại chủ đề (phim, đạo diễn, diễn viên)
+        ten_chu_de: Tên chủ đề
+        phim_list: Danh sách phim (để lấy poster_url nếu là phim)
+    
+    Returns:
+        str: URL ảnh hoặc None
+    """
+    # Nếu là phim, thử lấy poster_url từ phim_list
+    if loai_chu_de == 'phim' and phim_list:
+        for phim in phim_list:
+            if phim.get('ten_phim') == ten_chu_de and phim.get('poster_url'):
+                # Trả về poster_url nếu có (đã là đường dẫn bucket/key)
+                return phim.get('poster_url')
+    
+    # Fallback: Sử dụng placeholder hoặc ảnh mẫu
+    # Có thể sử dụng Unsplash hoặc Picsum
+    return None
+
+
+def search_news_about_topic(search_term, use_google=True):
+    """Tìm kiếm tin tức về một chủ đề sử dụng Google Search
     
     Args:
         search_term: Từ khóa tìm kiếm
-        web_search_func: Hàm web_search (sẽ được truyền từ bên ngoài)
+        use_google: Có sử dụng Google Search không (mặc định: True)
     
     Returns:
-        tuple: (title, content) hoặc (None, None) nếu không tìm thấy
+        tuple: (title, content, image_url) hoặc (None, None, None) nếu không tìm thấy
     """
     try:
         # Tạo query tìm kiếm bằng tiếng Việt
         query = f"tin tức {search_term} phim điện ảnh Việt Nam"
         
-        if web_search_func:
-            # Gọi web_search tool
-            search_results = web_search_func(query)
+        if use_google:
+            # Ưu tiên sử dụng Google Custom Search API (nếu có API key)
+            if google_api_service and GOOGLE_API_KEY and GOOGLE_SEARCH_ENGINE_ID:
+                try:
+                    print(f"    🔍 Đang tìm kiếm Google API: {query[:60]}...")
+                    
+                    # Gọi Google Custom Search API
+                    res = google_api_service.cse().list(
+                        q=query,
+                        cx=GOOGLE_SEARCH_ENGINE_ID,
+                        num=5,  # Lấy 5 kết quả
+                        lr='lang_vi'  # Tiếng Việt
+                    ).execute()
+                    
+                    items = res.get('items', [])
+                    if items:
+                        # Trích xuất title, content và image_url từ API results
+                        title, content, image_url = extract_content_from_google_api_results(items)
+                        if title and content:
+                            return title, content, image_url
+                
+                except Exception as e:
+                    print(f"    ⚠ Lỗi Google Custom Search API: {e}")
+                    # Fallback về googlesearch-python
+                    pass
             
-            if search_results and len(search_results) > 0:
-                # Trích xuất title và content từ kết quả
-                title, content = extract_content_from_search_results(search_results)
-                return title, content
+            # Sử dụng googlesearch-python (không cần API key)
+            if HAS_GOOGLE_SEARCH and google_search:
+                try:
+                    print(f"    🔍 Đang tìm kiếm Google (googlesearch-python): {query[:60]}...")
+                    
+                    # Google search trả về URLs
+                    # Kiểm tra xem thư viện nào đang được sử dụng để gọi đúng tham số
+                    search_results = None
+                    
+                    # Thử các cách gọi khác nhau tùy theo thư viện
+                    try:
+                        # Cách 1: Thử với tham số đầy đủ (googlesearch)
+                        search_results = list(google_search(
+                            query, 
+                            num_results=5,
+                            lang='vi',
+                            pause=1.0
+                        ))
+                    except TypeError as e1:
+                        try:
+                            # Cách 2: Không có pause (googlesearch-python)
+                            search_results = list(google_search(
+                                query, 
+                                num_results=5,
+                                lang='vi'
+                            ))
+                        except TypeError as e2:
+                            try:
+                                # Cách 3: Chỉ có num_results
+                                search_results = list(google_search(
+                                    query, 
+                                    num_results=5
+                                ))
+                            except TypeError as e3:
+                                try:
+                                    # Cách 4: Chỉ có num (tên tham số khác)
+                                    search_results = list(google_search(query, num=5))
+                                except TypeError as e4:
+                                    # Cách 5: Chỉ có query
+                                    search_results = list(google_search(query))
+                    
+                    if search_results:
+                        # Lấy URLs từ kết quả Google Search
+                        urls = list(search_results)[:5]
+                        
+                        # Trích xuất title, content và image_url từ URLs với search_term để tạo nội dung phong phú hơn
+                        title, content, image_url = extract_content_from_google_results(urls, search_term)
+                        
+                        if title and content and len(content.strip()) > 100:  # Đảm bảo nội dung đủ dài
+                            # Thêm delay để tránh rate limit
+                            time.sleep(1.0)
+                            return title, content, image_url
+                    
+                    # Thêm delay để tránh rate limit
+                    time.sleep(1.0)
+                
+                except Exception as e:
+                    print(f"    ⚠ Lỗi Google Search (googlesearch-python): {e}")
+                    # Fallback về dữ liệu mẫu
+                    return None, None, None
         
-        return None, None
+        return None, None, None
     except Exception as e:
         print(f"  ⚠ Lỗi khi tìm kiếm: {e}")
-        return None, None
+        return None, None, None
 
 
-def create_tin_tuc_cho_rap(cursor, connection, id_rapphim, ten_rap, so_luong, phim_list, web_search_func=None):
+def create_tin_tuc_cho_rap(cursor, connection, id_rapphim, ten_rap, so_luong, phim_list, use_google=True):
     """Tạo tin tức cho một rạp phim cụ thể"""
     # Lấy danh sách tác giả của rạp
     tac_gia_list = get_tac_gia_by_rap(cursor, id_rapphim)
@@ -312,18 +602,55 @@ def create_tin_tuc_cho_rap(cursor, connection, id_rapphim, ten_rap, so_luong, ph
         try:
             loai_chu_de, ten_chu_de = search_topics[i]
             
-            # Tìm kiếm tin tức từ web
+            # Tìm kiếm tin tức từ Google
             search_query = f"{loai_chu_de} {ten_chu_de}"
-            title, content = search_news_about_topic(search_query, web_search_func)
+            title, content, image_url = search_news_about_topic(search_query, use_google=use_google)
             
-            # Nếu không tìm thấy từ web, tạo dữ liệu mẫu
+            # Lấy ảnh cho bài viết
+            if not image_url:
+                # Thử lấy từ phim nếu là chủ đề về phim
+                image_url = get_image_url_for_topic(loai_chu_de, ten_chu_de, phim_list)
+            
+            # Nếu không tìm thấy từ web, tạo dữ liệu mẫu phong phú hơn
             if not title or not content or len(content.strip()) < 50:
                 title = f"Tin tức mới về {loai_chu_de} {ten_chu_de}"
-                content = f"""
-                <p>Đây là tin tức về {loai_chu_de} <strong>{ten_chu_de}</strong>.</p>
-                <p>Nội dung tin tức sẽ được cập nhật từ các nguồn tin tức điện ảnh uy tín.</p>
-                <p>Hãy theo dõi để cập nhật những thông tin mới nhất về {ten_chu_de}.</p>
-                """
+                
+                # Lấy ảnh nếu chưa có
+                if not image_url:
+                    image_url = get_image_url_for_topic(loai_chu_de, ten_chu_de, phim_list)
+                
+                # Tạo nội dung mẫu phong phú hơn dựa trên loại chủ đề
+                if loai_chu_de == 'phim':
+                    content = f"""
+                    <p>Phim <strong>{ten_chu_de}</strong> đang nhận được sự quan tâm đặc biệt từ khán giả và giới phê bình điện ảnh.</p>
+                    <p>Bộ phim mang đến những trải nghiệm mới lạ và hấp dẫn cho người xem với cốt truyện độc đáo và dàn diễn viên tài năng.</p>
+                    <p>Các nhà phê bình đánh giá cao về chất lượng nghệ thuật và kỹ thuật của phim, đặc biệt là phần hình ảnh và âm thanh.</p>
+                    <p>Khán giả đang háo hức chờ đợi để được thưởng thức tác phẩm điện ảnh đầy ấn tượng này trên màn ảnh rộng.</p>
+                    <p>Hãy theo dõi các kênh thông tin chính thức để cập nhật những tin tức mới nhất về phim <strong>{ten_chu_de}</strong>.</p>
+                    """
+                elif loai_chu_de == 'đạo diễn':
+                    content = f"""
+                    <p>Đạo diễn <strong>{ten_chu_de}</strong> là một trong những tên tuổi nổi bật trong ngành công nghiệp điện ảnh hiện đại.</p>
+                    <p>Với phong cách làm phim độc đáo và tầm nhìn nghệ thuật sâu sắc, {ten_chu_de} đã tạo ra nhiều tác phẩm được đánh giá cao.</p>
+                    <p>Các dự án gần đây của đạo diễn {ten_chu_de} đang thu hút sự chú ý của công chúng và giới chuyên môn.</p>
+                    <p>Nhiều người hâm mộ đang mong chờ những tác phẩm mới từ đạo diễn tài năng này trong thời gian tới.</p>
+                    <p>Hãy theo dõi để cập nhật những thông tin mới nhất về đạo diễn <strong>{ten_chu_de}</strong> và các dự án sắp tới.</p>
+                    """
+                elif loai_chu_de == 'diễn viên':
+                    content = f"""
+                    <p>Diễn viên <strong>{ten_chu_de}</strong> đang là cái tên được nhắc đến nhiều trong làng giải trí với những vai diễn ấn tượng.</p>
+                    <p>Với tài năng diễn xuất đa dạng và khả năng hóa thân vào nhiều nhân vật khác nhau, {ten_chu_de} đã chinh phục được trái tim của đông đảo khán giả.</p>
+                    <p>Các dự án phim gần đây của diễn viên {ten_chu_de} đều nhận được những phản hồi tích cực từ phía người xem và giới phê bình.</p>
+                    <p>Nhiều người hâm mộ đang háo hức chờ đợi để được thấy diễn viên tài năng này trong những vai diễn mới đầy thách thức.</p>
+                    <p>Hãy theo dõi các kênh thông tin chính thức để cập nhật những tin tức mới nhất về diễn viên <strong>{ten_chu_de}</strong>.</p>
+                    """
+                else:
+                    content = f"""
+                    <p>Đây là tin tức về {loai_chu_de} <strong>{ten_chu_de}</strong> trong ngành công nghiệp điện ảnh.</p>
+                    <p>Nội dung tin tức sẽ được cập nhật từ các nguồn tin tức điện ảnh uy tín và chính thống.</p>
+                    <p>Các thông tin mới nhất về {loai_chu_de} {ten_chu_de} đang được cập nhật liên tục trên các phương tiện truyền thông.</p>
+                    <p>Hãy theo dõi để cập nhật những thông tin mới nhất về {ten_chu_de} và các hoạt động liên quan.</p>
+                    """
             else:
                 # Format lại content thành HTML nếu chưa có
                 if not content.startswith('<'):
@@ -358,7 +685,7 @@ def create_tin_tuc_cho_rap(cursor, connection, id_rapphim, ten_rap, so_luong, ph
                 id_tac_gia,
                 title,
                 content,
-                None,
+                image_url,  # URL ảnh bài viết (có thể là None)
                 ten_tac_gia,
                 2,  # trang_thai: 2 = Đã duyệt
                 ngay_tao,
@@ -384,14 +711,14 @@ def create_tin_tuc_cho_rap(cursor, connection, id_rapphim, ten_rap, so_luong, ph
     return success_count, error_count
 
 
-def create_tin_tuc_from_web(cursor, connection, so_luong_moi_rap=10, web_search_func=None):
-    """Tạo tin tức từ web search cho từng rạp phim
+def create_tin_tuc_from_web(cursor, connection, so_luong_moi_rap=10, use_google=True):
+    """Tạo tin tức từ Google Search cho từng rạp phim
     
     Args:
         cursor: Database cursor
         connection: Database connection
         so_luong_moi_rap: Số lượng tin tức cần tạo cho mỗi rạp (mặc định: 10)
-        web_search_func: Hàm web_search (có thể là None nếu không có)
+        use_google: Có sử dụng Google Search không (mặc định: True)
     """
     # Lấy danh sách rạp phim và phim
     rapphim_list = get_rapphim_ids(cursor)
@@ -407,17 +734,28 @@ def create_tin_tuc_from_web(cursor, connection, so_luong_moi_rap=10, web_search_
     
     print(f"Tìm thấy {len(rapphim_list)} rạp phim")
     print(f"Tìm thấy {len(phim_list)} phim")
-    print(f"Bắt đầu tạo {so_luong_moi_rap} tin tức cho mỗi rạp từ web search...\n")
+    if use_google:
+        if google_api_service and GOOGLE_API_KEY:
+            print(f"Bắt đầu tạo {so_luong_moi_rap} tin tức cho mỗi rạp từ Google Custom Search API...\n")
+        elif HAS_GOOGLE_SEARCH:
+            print(f"Bắt đầu tạo {so_luong_moi_rap} tin tức cho mỗi rạp từ Google Search (googlesearch-python)...\n")
+        else:
+            print(f"Bắt đầu tạo {so_luong_moi_rap} tin tức cho mỗi rạp (sử dụng dữ liệu mẫu)...\n")
+    else:
+        print(f"Bắt đầu tạo {so_luong_moi_rap} tin tức cho mỗi rạp (sử dụng dữ liệu mẫu)...\n")
     
     total_success = 0
     total_error = 0
     
     for id_rap, ten_rap in rapphim_list:
         print(f"Rạp: {ten_rap} (ID: {id_rap})")
-        success, error = create_tin_tuc_cho_rap(cursor, connection, id_rap, ten_rap, so_luong_moi_rap, phim_list, web_search_func)
+        success, error = create_tin_tuc_cho_rap(cursor, connection, id_rap, ten_rap, so_luong_moi_rap, phim_list, use_google)
         total_success += success
         total_error += error
         print()  # Dòng trống giữa các rạp
+        # Thêm delay nhỏ giữa các rạp để tránh rate limit
+        if use_google:
+            time.sleep(2)  # Chờ 2 giây giữa các rạp
     
     print(f"{'='*60}")
     print(f"Hoàn thành!")
@@ -426,11 +764,18 @@ def create_tin_tuc_from_web(cursor, connection, so_luong_moi_rap=10, web_search_
     print(f"Tổng tin tức lỗi: {total_error}")
     print(f"{'='*60}")
     
-    if web_search_func:
-        print("\n✓ Đã sử dụng web_search để tìm tin tức thật từ web.")
+    if use_google:
+        if google_api_service and GOOGLE_API_KEY:
+            print("\n✓ Đã sử dụng Google Custom Search API để tìm tin tức thật từ web.")
+        elif HAS_GOOGLE_SEARCH:
+            print("\n✓ Đã sử dụng Google Search (googlesearch-python) để tìm tin tức thật từ web.")
+        else:
+            print("\n⚠ Lưu ý: Script đang sử dụng dữ liệu mẫu.")
+            print("Để sử dụng Google Search, có 2 cách:")
+            print("  1. Cài đặt: pip install googlesearch-python (không cần API key)")
+            print("  2. Hoặc cấu hình GOOGLE_API_KEY và GOOGLE_SEARCH_ENGINE_ID trong .env (cần API key)")
     else:
         print("\n⚠ Lưu ý: Script đang sử dụng dữ liệu mẫu.")
-        print("Để sử dụng tin tức thật từ web, cần truyền web_search_func vào hàm.")
 
 
 def main():
@@ -484,22 +829,27 @@ def main():
                 print("  pip install mysql-connector-python")
                 sys.exit(1)
         
-        # Tạo tin tức
-        # Note: Trong môi trường Cursor, có thể sử dụng web_search tool
-        # Tuy nhiên, vì đây là script Python độc lập, cần tích hợp web_search
-        # thông qua một wrapper function hoặc API tìm kiếm khác
+        # Tạo tin tức sử dụng Google Search
+        # Ưu tiên sử dụng Google Custom Search API nếu có API key
+        # Nếu không, sử dụng googlesearch-python
+        use_google = (google_api_service and GOOGLE_API_KEY) or HAS_GOOGLE_SEARCH
         
-        # Tạm thời sử dụng None, sẽ được cập nhật khi có web_search
-        web_search_func = None
+        if not use_google:
+            print("\n⚠ Cảnh báo: Chưa cấu hình Google Search.")
+            print("Script sẽ sử dụng dữ liệu mẫu thay vì tìm kiếm thật từ Google.")
+            print("\nĐể sử dụng Google Search, có 2 cách:")
+            print("  1. Cài đặt: pip install googlesearch-python (không cần API key)")
+            print("  2. Hoặc cấu hình trong file .env:")
+            print("     GOOGLE_API_KEY=your_api_key_here")
+            print("     GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id_here")
+            print("     Và cài đặt: pip install google-api-python-client")
+            print()
+        elif google_api_service and GOOGLE_API_KEY:
+            print("\n✓ Sử dụng Google Custom Search API (với API key)")
+        elif HAS_GOOGLE_SEARCH:
+            print("\n✓ Sử dụng Google Search (googlesearch-python, không cần API key)")
         
-        # Nếu muốn sử dụng web_search, có thể tạo wrapper như sau:
-        # def web_search_wrapper(query):
-        #     # Gọi web_search tool và trả về kết quả
-        #     # Cần implement dựa trên API tìm kiếm thực tế
-        #     pass
-        # web_search_func = web_search_wrapper
-        
-        create_tin_tuc_from_web(cursor, connection, so_luong, web_search_func=web_search_func)
+        create_tin_tuc_from_web(cursor, connection, so_luong, use_google=use_google)
         
         cursor.close()
         connection.close()

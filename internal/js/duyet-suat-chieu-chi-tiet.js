@@ -118,7 +118,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const card = document.createElement('div');
             card.className = 'bg-white border rounded-lg overflow-hidden shadow-sm mb-6';
             const showtimesHtml = movie.showtimes.map(s => {
-                const st = showtimeStatusLabel(s.status);
                 // Kiểm tra hết hạn
                 const now = new Date();
                 const endTime = new Date(`${date}T${s.end_time}:00`);
@@ -137,7 +136,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="flex flex-col sm:flex-row sm:items-center gap-1">
                         <div class="font-medium min-w-24">${s.start_time} - ${s.end_time}</div>
                         <span class="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded ml-0 sm:ml-2">${s.room_name}</span>
-                        <span class="px-2 py-1 rounded text-xs font-semibold ${st.color}">${st.text}</span>
                         ${hasVe ? `<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded ml-0 sm:ml-2">${s.so_ve_da_dat} vé đã đặt</span>` : ''}
                     </div>
                     <div class="flex items-center ml-auto space-x-2">

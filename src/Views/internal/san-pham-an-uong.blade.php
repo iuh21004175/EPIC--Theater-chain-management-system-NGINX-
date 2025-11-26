@@ -3,166 +3,16 @@
 @section('title', 'Quản lý sản phẩm ăn uống')
 
 @section('head')
-    <script type="module" src="{{$_ENV['URL_INTERNAL_BASE']}}/js/san-pham-an-uong.js"></script>
-    <script type="module" src="{{$_ENV['URL_INTERNAL_BASE']}}/js/danh-muc-san-pham.js"></script>
-    <script type="module" src="{{$_ENV['URL_INTERNAL_BASE']}}/js/combo-san-pham.js"></script>
-    <script type="module" src="{{$_ENV['URL_INTERNAL_BASE']}}/js/tab-loader-san-pham.js"></script>
     <style>
-        .modal {
-            transition: opacity 0.25s ease;
-        }
-        .modal-active {
-            overflow-x: hidden;
-            overflow-y: visible !important;
-        }
-        .modal-container {
-            max-height: 80vh !important;
-        }
-        .modal-header, .modal-footer {
-            position: sticky;
-            background-color: white;
-            z-index: 10;
-        }
-        .modal-header {
-            top: 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .modal-footer {
-            bottom: 0;
-            border-top: 1px solid #e5e7eb;
-        }
-        .modal-body {
-            overflow-y: auto;
-            max-height: 60vh;
-            padding-right: 0.5rem;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-        }
-        .modal-body::-webkit-scrollbar {
-            width: 8px;
-            display: block;
-        }
-        .modal-body::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .modal-body::-webkit-scrollbar-thumb {
-            background-color: rgba(156, 163, 175, 0.5);
-            border-radius: 20px;
-            border: transparent;
-        }
-        .modal-body::-webkit-scrollbar-thumb:hover {
-            background-color: rgba(156, 163, 175, 0.8);
-        }
         .tab-content {
             display: none;
         }
         .tab-content.active {
             display: block;
         }
-        .price-input-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-        }
-        .price-input {
-            width: 100%;
-            padding: 0.75rem 4rem 0.75rem 3rem;
-            font-size: 1.125rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            background-color: white;
-        }
-        .price-input:focus {
-            border-color: #ef4444;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-            outline: none;
-        }
-        .price-input-icon-left {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1.125rem;
-            color: #6b7280;
-            font-weight: 500;
-        }
-        .price-input-icon-right {
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1rem;
-            color: #6b7280;
-            font-weight: 500;
-        }
-        .form-input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-            background-color: white;
-        }
-        .form-input:focus {
-            border-color: #ef4444;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-            outline: none;
-        }
-        .input-group-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
-        }
-        .input-group {
-            margin-bottom: 1.5rem;
-        }
-        .image-preview {
-            width: 100%;
-            height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
-        .image-preview img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-        .image-preview-placeholder {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: #6b7280;
-        }
-        .invalid-feedback {
-            color: #ef4444;
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
-        }
-        /* Sửa lỗi hiển thị select box */
-        select.form-input {
-            padding-top: 0;
-            padding-bottom: 0;
-            text-align: left;
-            align-items: center;
-            display: flex;
-            height: 42px;
-        }
-
-        /* Đảm bảo văn bản option hiển thị đúng trong dropdown */
-        select.form-input option {
-            padding: 8px;
-            font-size: 1rem;
-        }
     </style>
+    <script type="module" src="{{$_ENV['URL_INTERNAL_BASE']}}/js/san-pham-an-uong.js"></script>
+    <script type="module" src="{{$_ENV['URL_INTERNAL_BASE']}}/js/danh-muc-san-pham.js"></script>
 @endsection
 
 @section('breadcrumbs')
@@ -210,31 +60,58 @@
             </div>
 
             <!-- Search and filter bar -->
-            <div class="bg-white p-4 rounded-lg shadow mt-6 mb-6">
-                <div class="flex flex-col md:flex-row gap-4 items-end">
-                    <div class="flex-1">
-                        <label for="search-product" class="input-group-label">Tìm kiếm</label>
-                        <input type="text" id="search-product" class="form-input py-2 px-3 min-h-[42px] h-[42px]" placeholder="Nhập tên sản phẩm hoặc mô tả...">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6 mb-6">
+                <div class="flex flex-col lg:flex-row gap-4 items-end">
+                    <!-- Search input -->
+                    <div class="flex-1 w-full">
+                        <label for="search-product" class="block text-sm font-medium text-gray-700 mb-2">
+                            Tìm kiếm
+                        </label>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400 group-focus-within:text-red-500 transition-colors duration-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input 
+                                type="text" 
+                                id="search-product" 
+                                class="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 hover:border-gray-400" 
+                                placeholder="Nhập tên sản phẩm hoặc mô tả..."
+                            >
+                        </div>
                     </div>
-                    <div class="w-full md:w-64 relative">
-                        <label for="filter-category" class="input-group-label">Lọc theo danh mục</label>
+                    
+                    <!-- Category filter -->
+                    <div class="w-full lg:w-64">
+                        <label for="filter-category" class="block text-sm font-medium text-gray-700 mb-2">
+                            Lọc theo danh mục
+                        </label>
                         <div class="relative">
-                            <select id="filter-category" class="form-input appearance-none bg-white pr-8 pl-3 text-base text-gray-700 leading-normal h-[42px] flex items-center">
+                            <select 
+                                id="filter-category" 
+                                class="block w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 hover:border-gray-400 cursor-pointer"
+                            >
                                 <option value="">Tất cả danh mục</option>
-                                <option value="1">Bắp rang</option>
-                                <option value="2">Đồ uống</option>
-                                <option value="3">Đồ ăn nhanh</option>
-                                <option value="4">Snack</option>
+                                @foreach($danhMucs as $danhMuc)
+                                    <option value="{{$danhMuc['id']}}">{{$danhMuc['ten']}}</option>
+                                @endforeach
                             </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div class="md:self-auto md:pb-0">
-                        <button id="btn-search-product" type="button" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 h-[42px]">
+                    
+                    <!-- Search button -->
+                    <div class="w-full lg:w-auto">
+                        <button 
+                            id="btn-search-product" 
+                            type="button" 
+                            class="w-full lg:w-auto inline-flex items-center justify-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
+                        >
                             <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
@@ -330,65 +207,50 @@
             <form id="add-product-form" class="space-y-4">
                 <!-- Modal Body -->
                 <div class="modal-body px-6 py-2">
-                    <div class="grid grid-cols-1 gap-4">
-                        <div class="input-group">
-                            <label class="input-group-label" for="product-name">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="product-name">
                                 Tên sản phẩm <span class="text-red-500">*</span>
                             </label>
-                            <input class="form-input" id="product-name" type="text" placeholder="Nhập tên sản phẩm">
-                            <div class="invalid-feedback hidden" id="product-name-error">Vui lòng nhập tên sản phẩm.</div>
+                            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="product-name" type="text" placeholder="Nhập tên sản phẩm">
+                            <p class="text-red-500 text-xs italic hidden" id="product-name-error">Vui lòng nhập tên sản phẩm.</p>
                         </div>
                         
-                        <div class="input-group">
-                            <label class="input-group-label" for="product-category">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="product-category">
                                 Danh mục <span class="text-red-500">*</span>
                             </label>
-                            <select class="form-input" id="product-category">
+                            <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="product-category">
                                 <option value="">Chọn danh mục</option>
-                                <option value="1">Bắp rang</option>
-                                <option value="2">Đồ uống</option>
-                                <option value="3">Đồ ăn nhanh</option>
-                                <option value="4">Snack</option>
                             </select>
-                            <div class="invalid-feedback hidden" id="product-category-error">Vui lòng chọn danh mục.</div>
+                            <p class="text-red-500 text-xs italic hidden" id="product-category-error">Vui lòng chọn danh mục.</p>
                         </div>
                         
-                        <div class="input-group">
-                            <label class="input-group-label" for="product-price">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="product-price">
                                 Giá bán <span class="text-red-500">*</span>
                             </label>
-                            <div class="price-input-container">
-                                <span class="price-input-icon-left">₫</span>
-                                <input type="number" id="product-price" class="price-input" placeholder="0">
-                                <span class="price-input-icon-right">VND</span>
-                            </div>
-                            <div class="invalid-feedback hidden" id="product-price-error">Vui lòng nhập giá bán hợp lệ.</div>
+                            <input type="number" id="product-price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="0" min="0">
+                            <p class="text-red-500 text-xs italic hidden" id="product-price-error">Vui lòng nhập giá bán hợp lệ.</p>
                         </div>
                         
-                        <div class="input-group">
-                            <label class="input-group-label" for="product-image">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="product-image">
                                 Hình ảnh <span class="text-red-500">*</span>
                             </label>
-                           
-                            <input type="file" id="product-image" class="hidden" accept="image/*">
-                            <button type="button" id="select-image-btn" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                <svg class="-ml-1 mr-2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                </svg>
-                                Chọn ảnh
-                            </button>
-                            <div class="invalid-feedback hidden" id="product-image-error">Vui lòng chọn hình ảnh cho sản phẩm.</div>
-                             <div class="image-preview mb-2">
-                                <img id="preview-image" class="hidden">
+                            <input type="file" id="product-image" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" accept="image/*">
+                            <p class="text-red-500 text-xs italic hidden" id="product-image-error">Vui lòng chọn hình ảnh cho sản phẩm.</p>
+                            <div class="mt-2">
+                                <img id="preview-image" class="hidden max-w-full h-32 object-contain rounded">
                             </div>
                         </div>
-                        
-                        <div class="input-group">
-                            <label class="input-group-label" for="product-description">
-                                Mô tả
-                            </label>
-                            <textarea class="form-input" id="product-description" rows="3" placeholder="Nhập mô tả sản phẩm"></textarea>
-                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="product-description">
+                            Mô tả
+                        </label>
+                        <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="product-description" rows="3" placeholder="Nhập mô tả sản phẩm"></textarea>
                     </div>
                 </div>
                 
@@ -425,63 +287,49 @@
                 
                 <!-- Modal Body -->
                 <div class="modal-body px-6 py-2">
-                    <div class="grid grid-cols-1 gap-4">
-                        <div class="input-group">
-                            <label class="input-group-label" for="edit-product-name">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-product-name">
                                 Tên sản phẩm <span class="text-red-500">*</span>
                             </label>
-                            <input class="form-input" id="edit-product-name" type="text" placeholder="Nhập tên sản phẩm">
-                            <div class="invalid-feedback hidden" id="edit-product-name-error">Vui lòng nhập tên sản phẩm.</div>
+                            <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="edit-product-name" type="text" placeholder="Nhập tên sản phẩm">
+                            <p class="text-red-500 text-xs italic hidden" id="edit-product-name-error">Vui lòng nhập tên sản phẩm.</p>
                         </div>
                         
-                        <div class="input-group">
-                            <label class="input-group-label" for="edit-product-category">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-product-category">
                                 Danh mục <span class="text-red-500">*</span>
                             </label>
-                            <select class="form-input" id="edit-product-category">
+                            <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="edit-product-category">
                                 <option value="">Chọn danh mục</option>
-                                <option value="1">Bắp rang</option>
-                                <option value="2">Đồ uống</option>
-                                <option value="3">Đồ ăn nhanh</option>
-                                <option value="4">Snack</option>
                             </select>
-                            <div class="invalid-feedback hidden" id="edit-product-category-error">Vui lòng chọn danh mục.</div>
+                            <p class="text-red-500 text-xs italic hidden" id="edit-product-category-error">Vui lòng chọn danh mục.</p>
                         </div>
                         
-                        <div class="input-group">
-                            <label class="input-group-label" for="edit-product-price">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-product-price">
                                 Giá bán <span class="text-red-500">*</span>
                             </label>
-                            <div class="price-input-container">
-                                <span class="price-input-icon-left">₫</span>
-                                <input type="number" id="edit-product-price" class="price-input" placeholder="0">
-                                <span class="price-input-icon-right">VND</span>
-                            </div>
-                            <div class="invalid-feedback hidden" id="edit-product-price-error">Vui lòng nhập giá bán hợp lệ.</div>
+                            <input type="number" id="edit-product-price" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="0" min="0">
+                            <p class="text-red-500 text-xs italic hidden" id="edit-product-price-error">Vui lòng nhập giá bán hợp lệ.</p>
                         </div>
                         
-                        <div class="input-group">
-                            <label class="input-group-label" for="edit-product-image">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-product-image">
                                 Hình ảnh
                             </label>
-                            <div class="image-preview mb-2">
-                                <img id="edit-preview-image" class="w-full h-full object-contain">
+                            <div class="mb-2">
+                                <img id="edit-preview-image" class="hidden max-w-full h-32 object-contain rounded">
                             </div>
-                            <input type="file" id="edit-product-image" class="hidden" accept="image/*">
-                            <button type="button" id="edit-select-image-btn" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                <svg class="-ml-1 mr-2 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                </svg>
-                                Thay đổi ảnh
-                            </button>
+                            <input type="file" id="edit-product-image" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" accept="image/*">
                         </div>
-                        
-                        <div class="input-group">
-                            <label class="input-group-label" for="edit-product-description">
-                                Mô tả
-                            </label>
-                            <textarea class="form-input" id="edit-product-description" rows="3" placeholder="Nhập mô tả sản phẩm"></textarea>
-                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="edit-product-description">
+                            Mô tả
+                        </label>
+                        <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="edit-product-description" rows="3" placeholder="Nhập mô tả sản phẩm"></textarea>
                     </div>
                 </div>
                 

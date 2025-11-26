@@ -12,7 +12,32 @@ use Exception;
             return DanhMuc::create(['ten' => $ten]);
         }
         public function docDanhMuc(){
-            return DanhMuc::all();
+            // Lấy danh sách danh mục và đếm số sản phẩm theo rạp hiện tại
+            $idRapPhim = $_SESSION['UserInternal']['ID_RapPhim'] ?? null;
+            
+            if ($idRapPhim) {
+                // Đếm số sản phẩm theo từng danh mục và rạp
+                $danhMucs = DanhMuc::all();
+                return $danhMucs->map(function($danhMuc) use ($idRapPhim) {
+                    $soSanPham = SanPham::where('danh_muc_id', $danhMuc->id)
+                        ->where('id_rapphim', $idRapPhim)
+                        ->count();
+                    return [
+                        'id' => $danhMuc->id,
+                        'ten' => $danhMuc->ten,
+                        'so_sanpham' => $soSanPham
+                    ];
+                });
+            } else {
+                // Nếu không có rạp, trả về tất cả danh mục với số sản phẩm = 0
+                return DanhMuc::all()->map(function($danhMuc) {
+                    return [
+                        'id' => $danhMuc->id,
+                        'ten' => $danhMuc->ten,
+                        'so_sanpham' => 0
+                    ];
+                });
+            }
         }
         public function suaDanhMuc($id){
             $data = json_decode(file_get_contents('php://input'), true);
@@ -74,21 +99,40 @@ use Exception;
             return $query->get();
         }
         public function suaSanPham($id){
-            $data = json_decode(file_get_contents('php://input'), true);
-            $ten = $data['ten'];
-            $mo_ta = $data['mo_ta'];
-            $gia = $data['gia'];
-            $danh_muc_id = $data['danh_muc_id'];
+            $ten = $_POST['ten'] ?? '';
+            $mo_ta = $_POST['mo_ta'] ?? '';
+            $gia = $_POST['gia'] ?? '';
+            $danh_muc_id = $_POST['danh_muc_id'] ?? '';
+            
             $sanPham = SanPham::find($id);
-            if($sanPham){
-                $sanPham->ten = $ten;
-                $sanPham->mo_ta = $mo_ta;
-                $sanPham->gia = $gia;
-                $sanPham->danh_muc_id = $danh_muc_id;
-                $sanPham->id_rapphim = $_SESSION['UserInternal']['ID_RapPhim'];
-                return $sanPham->save();
+            if(!$sanPham){
+                throw new \Exception('Sản phẩm không tồn tại');
             }
-            return false;
+            
+            $sanPham->ten = $ten;
+            $sanPham->mo_ta = $mo_ta;
+            $sanPham->gia = $gia;
+            $sanPham->danh_muc_id = $danh_muc_id;
+            $sanPham->id_rapphim = $_SESSION['UserInternal']['ID_RapPhim'];
+            
+            // Xử lý upload hình ảnh nếu có
+            if (isset($_FILES['hinh_anh']) && $_FILES['hinh_anh']['error'] === UPLOAD_ERR_OK) {
+                $hinh_anh = $_FILES['hinh_anh'];
+                $bucket = 'san-pham';
+                $fileName = 'san_pham' . '_' . time() . '.' . pathinfo($hinh_anh['name'], PATHINFO_EXTENSION);
+                try {
+                    getS3Client()->putObject([
+                        'Bucket' => $bucket,
+                        'Key'    => $fileName,
+                        'SourceFile' => $hinh_anh['tmp_name']
+                    ]);
+                    $sanPham->hinh_anh = $bucket . '/' . $fileName;
+                } catch (\Exception $e) {
+                    // Nếu upload thất bại, giữ nguyên hình ảnh cũ
+                    error_log('Lỗi upload ảnh sản phẩm: ' . $e->getMessage());
+                }
+            }
+            $sanPham->save();
         }
 
         public function docSanPhamTheoRap($idRap)

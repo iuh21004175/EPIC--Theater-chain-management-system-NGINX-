@@ -5,7 +5,9 @@
 
     class Ctrl_SanPhamAnUong{
         public function index(){
-            return view('internal.san-pham-an-uong');
+            $service = new Sc_SanPham();
+            $danhMucs = $service->docDanhMuc();
+            return view('internal.san-pham-an-uong', ['danhMucs' => $danhMucs]);
         }
         public function sanPham(){
             return view('customer.san-pham');
@@ -73,12 +75,8 @@
             $service = new Sc_SanPham();
             $id = $argc['id'];
             try {
-                $result = $service->suaSanPham($id);
-                if($result){
-                    return ['success' => true, 'message' => 'Sửa sản phẩm thành công'];
-                } else {
-                    return ['success' => false, 'message' => 'Sửa sản phẩm thất bại'];
-                }
+                $service->suaSanPham($id);
+                return ['success' => true, 'message' => 'Sửa sản phẩm thành công'];
             } catch (\Exception $e) {
                 return ['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()];
             }
