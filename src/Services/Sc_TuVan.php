@@ -23,7 +23,7 @@
                     $noiDung = "Phiên chat mới đã được tạo. Vui lòng chờ nhân viên tư vấn.";
                     $phienChat->tinNhan()->create([
                         'noi_dung' => $noiDung,
-                        'loai_noidung' => 1, // Text
+                        'loai_noi_dung' => 1, // Text
                         'nguoi_gui' => null, // Hệ thống
                         'id_nhanvien' => null,
                         'trang_thai' => 1 //  (Khách hàng đã xem) vì khi tao phiên chat thì khách hàng đang ở trang chat
