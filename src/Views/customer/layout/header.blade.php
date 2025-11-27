@@ -329,6 +329,7 @@
             window.config = {
                 url: "{{ $_ENV['URL_WEB_BASE'] }}",
                 socketUrl: "{{ $_ENV['URL_SERVER_REALTIME'] }}",
+                urlServerMinio: "{{ $_ENV['MINIO_SERVER_URL'] }}",
             }
     </script>
 </head>

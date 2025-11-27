@@ -13,18 +13,18 @@ Cách sử dụng:
        pip install mysql-connector-python
     
     2. Chạy script:
-       python fake_kehoachsuatchieu.py [số_tuần]
+       python fake_kehoachsuatchieu.py [id_rap]
     
     Ví dụ:
-       python fake_kehoachsuatchieu.py 4    # Tạo kế hoạch cho 4 tuần
-       python fake_kehoachsuatchieu.py      # Tạo kế hoạch cho 2 tuần (mặc định)
+       python fake_kehoachsuatchieu.py 5    # Tạo kế hoạch cho rạp có ID = 5
+       python fake_kehoachsuatchieu.py      # Tạo kế hoạch cho tất cả rạp
 
 Lưu ý:
-    - Script sẽ tạo kế hoạch suất chiếu cho từng rạp
+    - Script sẽ tạo kế hoạch suất chiếu cho tháng hiện tại (ngày 1-30) và tháng sau (ngày 1-30)
     - 3 trạng thái: 0 - Chờ duyệt, 1 - Đã duyệt, 2 - Từ chối
     - Nếu đã duyệt (tinh_trang = 1), sẽ tạo suất chiếu trong bảng suatchieu
     - Suất chiếu phải sau ngày công chiếu của phim
-    - Tạo cả suất chiếu quá khứ và tương lai
+    - Kiểm tra xung đột với cả kế hoạch suất chiếu và suất chiếu hiện có
 """
 
 try:
@@ -184,17 +184,15 @@ def get_phongchieu_by_rap(cursor, id_rapphim):
     return phong_list
 
 
-def get_start_of_week(date):
-    """Lấy ngày đầu tuần (Thứ 2)"""
-    # date.weekday() trả về 0 (Thứ 2) đến 6 (Chủ nhật)
-    days_since_monday = date.weekday()
-    return date - timedelta(days=days_since_monday)
+def get_start_of_month(date):
+    """Lấy ngày đầu tháng"""
+    return date.replace(day=1)
 
 
-def get_end_of_week(date):
-    """Lấy ngày cuối tuần (Chủ nhật)"""
-    start = get_start_of_week(date)
-    return start + timedelta(days=6)
+def get_end_of_month(date, max_day=30):
+    """Lấy ngày cuối tháng (giới hạn ở ngày 30)"""
+    start = get_start_of_month(date)
+    return start.replace(day=max_day)
 
 
 def calculate_end_time(start_time_str, thoi_luong_phim):
@@ -281,6 +279,10 @@ def check_business_hours(batdau_str):
 def get_existing_schedules(cursor, id_phongchieu, ngay_chieu):
     """Lấy danh sách suất chiếu đã có trong phòng vào ngày đó
     
+    QUAN TRỌNG: Hàm này kiểm tra xung đột với CẢ 2 nguồn:
+    1. Bảng kehoach_chitiet (kế hoạch suất chiếu - tất cả trạng thái)
+    2. Bảng suatchieu (suất chiếu đã được duyệt)
+    
     Args:
         cursor: Database cursor
         id_phongchieu: ID phòng chiếu
@@ -291,7 +293,7 @@ def get_existing_schedules(cursor, id_phongchieu, ngay_chieu):
     """
     schedules = []
     
-    # Lấy từ kehoach_chitiet (tất cả các suất trong kế hoạch)
+    # Lấy từ kehoach_chitiet (tất cả các suất trong kế hoạch - bao gồm chờ duyệt, đã duyệt, từ chối)
     cursor.execute("""
         SELECT batdau, ketthuc 
         FROM kehoach_chitiet
@@ -303,8 +305,7 @@ def get_existing_schedules(cursor, id_phongchieu, ngay_chieu):
     for row in results:
         schedules.append((row[0], row[1]))
     
-    # Lấy từ suatchieu (tất cả các suất đã được tạo)
-    # Lưu ý: Bảng suatchieu không có cột tinh_trang, chỉ lấy tất cả
+    # Lấy từ suatchieu (tất cả các suất chiếu đã được tạo thực tế)
     cursor.execute("""
         SELECT batdau, ketthuc 
         FROM suatchieu
@@ -319,13 +320,13 @@ def get_existing_schedules(cursor, id_phongchieu, ngay_chieu):
     return schedules
 
 
-def create_kehoach_tuan(cursor, connection, batdau_tuan, ketthuc_tuan):
-    """Tạo hoặc lấy kế hoạch tuần"""
+def create_kehoach_thang(cursor, connection, batdau_thang, ketthuc_thang):
+    """Tạo hoặc lấy kế hoạch tháng"""
     # Kiểm tra xem đã có kế hoạch chưa
     cursor.execute("""
         SELECT id FROM kehoach_suatchieu 
         WHERE batdau = %s AND ketthuc = %s
-    """, (batdau_tuan, ketthuc_tuan))
+    """, (batdau_thang, ketthuc_thang))
     
     result = cursor.fetchone()
     if result:
@@ -335,7 +336,7 @@ def create_kehoach_tuan(cursor, connection, batdau_tuan, ketthuc_tuan):
     cursor.execute("""
         INSERT INTO kehoach_suatchieu (batdau, ketthuc, created_at, updated_at)
         VALUES (%s, %s, NOW(), NOW())
-    """, (batdau_tuan, ketthuc_tuan))
+    """, (batdau_thang, ketthuc_thang))
     
     connection.commit()
     return cursor.lastrowid
@@ -438,8 +439,8 @@ def create_suatchieu(cursor, connection, id_phim, id_phongchieu, batdau, ketthuc
     return id_suatchieu
 
 
-def generate_kehoach_for_rap(cursor, connection, id_rapphim, ten_rap, so_tuan=2):
-    """Tạo kế hoạch suất chiếu cho một rạp"""
+def generate_kehoach_for_rap(cursor, connection, id_rapphim, ten_rap):
+    """Tạo kế hoạch suất chiếu cho một rạp (tháng hiện tại và tháng sau, ngày 1-30)"""
     print(f"\n{'='*60}")
     print(f"Rạp: {ten_rap} (ID: {id_rapphim})")
     print(f"{'='*60}")
@@ -459,38 +460,39 @@ def generate_kehoach_for_rap(cursor, connection, id_rapphim, ten_rap, so_tuan=2)
     print(f"  Tìm thấy {len(phim_list)} phim")
     print(f"  Tìm thấy {len(phong_list)} phòng chiếu")
     
-    # Tính toán các tuần cần tạo
+    # Tính toán tháng hiện tại và tháng sau
     today = datetime.now().date()
-    start_of_current_week = get_start_of_week(today)
     
     total_cho_duyet = 0
     total_da_duyet = 0
     total_tu_choi = 0
     
-    for tuan_index in range(so_tuan):
-        # Tạo tuần liên tiếp trong tương lai
-        # Tuần 0: tuần hiện tại
-        # Tuần 1, 2, 3...: các tuần tiếp theo trong tương lai
-        if tuan_index == 0:
-            # Tuần hiện tại
-            batdau_tuan = start_of_current_week
+    # Tạo kế hoạch cho 2 tháng: tháng hiện tại và tháng sau
+    for thang_index in range(2):
+        if thang_index == 0:
+            # Tháng hiện tại
+            batdau_thang = get_start_of_month(today)
         else:
-            # Tuần tương lai (liên tiếp tăng lên)
-            batdau_tuan = start_of_current_week + timedelta(weeks=tuan_index)
+            # Tháng sau
+            # Tính tháng sau bằng cách cộng thêm 1 tháng
+            if today.month == 12:
+                batdau_thang = today.replace(year=today.year + 1, month=1, day=1)
+            else:
+                batdau_thang = today.replace(month=today.month + 1, day=1)
         
-        ketthuc_tuan = batdau_tuan + timedelta(days=6)
+        ketthuc_thang = get_end_of_month(batdau_thang, max_day=30)
         
-        batdau_tuan_str = batdau_tuan.strftime('%Y-%m-%d')
-        ketthuc_tuan_str = ketthuc_tuan.strftime('%Y-%m-%d')
+        batdau_thang_str = batdau_thang.strftime('%Y-%m-%d')
+        ketthuc_thang_str = ketthuc_thang.strftime('%Y-%m-%d')
         
-        print(f"\n  Tuần {tuan_index + 1}: {batdau_tuan_str} đến {ketthuc_tuan_str}")
+        print(f"\n  Tháng {thang_index + 1}: {batdau_thang_str} đến {ketthuc_thang_str}")
         
-        # Tạo hoặc lấy kế hoạch tuần
-        id_kehoach = create_kehoach_tuan(cursor, connection, batdau_tuan_str, ketthuc_tuan_str)
+        # Tạo hoặc lấy kế hoạch tháng
+        id_kehoach = create_kehoach_thang(cursor, connection, batdau_thang_str, ketthuc_thang_str)
         
-        # Tạo suất chiếu cho mỗi ngày trong tuần
-        for day_offset in range(7):  # 7 ngày trong tuần
-            ngay_chieu = batdau_tuan + timedelta(days=day_offset)
+        # Tạo suất chiếu cho mỗi ngày trong tháng (ngày 1-30)
+        for day_offset in range(30):  # 30 ngày
+            ngay_chieu = batdau_thang + timedelta(days=day_offset)
             ngay_chieu_str = ngay_chieu.strftime('%Y-%m-%d')
             
             # Chọn ngẫu nhiên 2-4 phim cho mỗi ngày
@@ -679,7 +681,7 @@ def generate_kehoach_for_rap(cursor, connection, id_rapphim, ten_rap, so_tuan=2)
                                 attempts += 1
                                 continue
         
-        print(f"    ✓ Đã tạo kế hoạch cho tuần {tuan_index + 1}")
+        print(f"    ✓ Đã tạo kế hoạch cho tháng {thang_index + 1}")
     
     print(f"\n  Tổng kết:")
     print(f"    - Chờ duyệt: {total_cho_duyet}")
@@ -691,20 +693,22 @@ def generate_kehoach_for_rap(cursor, connection, id_rapphim, ten_rap, so_tuan=2)
 
 def main():
     """Hàm chính"""
+    # Lấy ID rạp từ command line (nếu có)
+    id_rap_chon = None
     if len(sys.argv) > 1:
         try:
-            so_tuan = int(sys.argv[1])
-            if so_tuan <= 0:
-                print("Số tuần phải lớn hơn 0. Sử dụng mặc định: 2")
-                so_tuan = 2
+            id_rap_chon = int(sys.argv[1])
+            print(f"Sẽ tạo kế hoạch cho rạp có ID: {id_rap_chon}")
         except ValueError:
-            print("Số tuần không hợp lệ. Sử dụng mặc định: 2")
-            so_tuan = 2
-    else:
-        so_tuan = 2
+            print("ID rạp không hợp lệ. Sẽ tạo cho tất cả rạp.")
+            id_rap_chon = None
     
-    print(f"Bắt đầu tạo kế hoạch suất chiếu cho {so_tuan} tuần...")
-    print(f"Sử dụng {'mysql-connector-python' if USE_MYSQL_CONNECTOR else 'pymysql'}")
+    print("="*60)
+    print("FAKE KẾ HOẠCH SUẤT CHIẾU")
+    print("="*60)
+    print(f"Thời gian: Tháng hiện tại (ngày 1-30) và Tháng sau (ngày 1-30)")
+    print(f"Sử dụng: {'mysql-connector-python' if USE_MYSQL_CONNECTOR else 'pymysql'}")
+    print("="*60)
     
     # Kết nối database
     try:
@@ -714,9 +718,9 @@ def main():
             try:
                 connection = mysql.connector.connect(**config)
                 cursor = connection.cursor()
-                print("Đã kết nối database thành công (sử dụng mysql-connector-python)!")
+                print("✓ Đã kết nối database thành công!")
             except Error as e:
-                print(f"Lỗi kết nối database: {e}")
+                print(f"✗ Lỗi kết nối database: {e}")
                 sys.exit(1)
         else:
             try:
@@ -727,24 +731,37 @@ def main():
                 cursor.execute("SET character_set_connection=utf8mb4")
                 cursor.execute("SET character_set_client=utf8mb4")
                 cursor.execute("SET character_set_results=utf8mb4")
-                print("Đã kết nối database thành công (sử dụng pymysql)!")
+                print("✓ Đã kết nối database thành công!")
             except (pymysql.Error, UnicodeEncodeError) as e:
-                print(f"Lỗi kết nối database: {e}")
+                print(f"✗ Lỗi kết nối database: {e}")
                 print("\nGợi ý: Cài đặt mysql-connector-python để xử lý password có ký tự đặc biệt:")
                 print("  pip install mysql-connector-python")
                 sys.exit(1)
         
         # Lấy danh sách rạp
-        rapphim_list = get_rapphim_list(cursor)
+        if id_rap_chon:
+            # Lấy thông tin rạp cụ thể
+            cursor.execute("SELECT id, ten FROM rapphim WHERE id = %s AND trang_thai = 1", (id_rap_chon,))
+            result = cursor.fetchone()
+            if result:
+                rapphim_list = [(result[0], result[1])]
+            else:
+                print(f"\n✗ Không tìm thấy rạp có ID {id_rap_chon} hoặc rạp không hoạt động!")
+                cursor.close()
+                connection.close()
+                sys.exit(1)
+        else:
+            # Lấy tất cả rạp
+            rapphim_list = get_rapphim_list(cursor)
         
         if not rapphim_list:
-            print("Không tìm thấy rạp phim nào trong database!")
+            print("\n✗ Không tìm thấy rạp phim nào trong database!")
             cursor.close()
             connection.close()
             sys.exit(1)
         
-        print(f"\nTìm thấy {len(rapphim_list)} rạp phim")
-        print(f"Bắt đầu tạo kế hoạch cho từng rạp...\n")
+        print(f"\n✓ Tìm thấy {len(rapphim_list)} rạp phim")
+        print(f"✓ Bắt đầu tạo kế hoạch suất chiếu...")
         
         total_cho_duyet = 0
         total_da_duyet = 0
@@ -752,7 +769,7 @@ def main():
         
         for id_rap, ten_rap in rapphim_list:
             cho_duyet, da_duyet, tu_choi = generate_kehoach_for_rap(
-                cursor, connection, id_rap, ten_rap, so_tuan
+                cursor, connection, id_rap, ten_rap
             )
             total_cho_duyet += cho_duyet
             total_da_duyet += da_duyet
@@ -761,20 +778,21 @@ def main():
         print(f"\n{'='*60}")
         print(f"HOÀN THÀNH!")
         print(f"{'='*60}")
-        print(f"Tổng số rạp: {len(rapphim_list)}")
-        print(f"Tổng số tuần: {so_tuan}")
+        print(f"Số rạp đã xử lý: {len(rapphim_list)}")
+        print(f"Thời gian: 2 tháng (tháng hiện tại + tháng sau, mỗi tháng 30 ngày)")
         print(f"\nTổng kết trạng thái:")
         print(f"  - Chờ duyệt: {total_cho_duyet}")
-        print(f"  - Đã duyệt: {total_da_duyet} (đã tạo suất chiếu)")
+        print(f"  - Đã duyệt: {total_da_duyet} (đã tạo suất chiếu và ghi log)")
         print(f"  - Từ chối: {total_tu_choi}")
+        print(f"  - TỔNG: {total_cho_duyet + total_da_duyet + total_tu_choi}")
         print(f"{'='*60}")
         
         cursor.close()
         connection.close()
-        print("\nĐã đóng kết nối database.")
+        print("\n✓ Đã đóng kết nối database.")
         
     except Exception as e:
-        print(f"Lỗi: {e}")
+        print(f"\n✗ Lỗi: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

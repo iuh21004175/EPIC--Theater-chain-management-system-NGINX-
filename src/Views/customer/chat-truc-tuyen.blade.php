@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <title>Chat trực tuyến - EPIC CINEMAS</title>
   <link rel="stylesheet" href="{{$_ENV['URL_WEB_BASE']}}/css/tailwind.css">
+  <script>
+    window.config = {
+      url: "{{ $_ENV['URL_WEB_BASE'] }}",
+      socketUrl: "{{ $_ENV['URL_SERVER_REALTIME'] }}",
+      urlServerMinio: "{{ $_ENV['MINIO_SERVER_URL'] }}",
+    }
+  </script>
   <script type="module" src="{{$_ENV['URL_WEB_BASE']}}/js/chat-truc-tuyen.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">

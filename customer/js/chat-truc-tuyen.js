@@ -1252,7 +1252,7 @@ function createMessageElement(message) {
             textDiv.style.lineHeight = '1.4';
             textDiv.style.wordWrap = 'break-word';
             textDiv.className = 'mb-2';
-            textDiv.innerHTML = `<a href="${document.getElementById('chatboxMessages').dataset.urlminio}/hinh-anh/` +  message.noi_dung + `" target="_blank">${message.noi_dung}</a>`;
+            textDiv.innerHTML = `<a href="${window.config.urlServerMinio}/hinh-anh/` +  message.noi_dung + `" target="_blank">${message.noi_dung}</a>`;
             //messageDiv.appendChild(textDiv);
         }
         
@@ -1272,7 +1272,7 @@ function createMessageElement(message) {
             img.onclick = () => showFullImage(message.image_url);
         } else if (message.loai_noidung == 2 && message.noi_dung) {
             // Nếu loai_noidung là 2 và noi_dung là URL ảnh
-            img.src = `${document.getElementById('chatboxMessages').dataset.urlminio}/hinh-anh/` + message.noi_dung;
+            img.src = `${window.config.urlServerMinio}/hinh-anh/` + message.noi_dung;
             img.dataset.fullImage = message.noi_dung;
             img.onclick = () => showFullImage(message.noi_dung);
         } else if (selectedImageFile && (message.has_image || message.loai_noidung === 2)) {
