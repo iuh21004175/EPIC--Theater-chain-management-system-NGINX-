@@ -55,6 +55,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Thiết lập các listener cho socket
 function setupSocketListeners() {
+    // Đăng ký khách hàng trực tuyến với server
+    const userIdElement = document.getElementById('userid');
+    if (userIdElement && userIdElement.value) {
+        const userId = userIdElement.value;
+        socket.emit('khach-hang-truc-tuyen', userId);
+        console.log('Đã đăng ký khách hàng trực tuyến với ID:', userId);
+    }
+    
     // Lắng nghe sự kiện nhận tin nhắn từ nhân viên
     socket.on("nhan-vien-gui-tin-nhan", function(data) {
         try {
@@ -469,6 +477,17 @@ function openChatSession(session) {
 
     // Reset số tin nhắn chưa đọc trong UI
     resetUnreadCountUI(session.id);
+    
+    // Thông báo server rằng khách hàng đang mở phiên chat này
+    const userIdElement = document.getElementById('userid');
+    if (userIdElement && userIdElement.value) {
+        const userId = userIdElement.value;
+        socket.emit('khach-hang-mo-phien-chat', JSON.stringify({
+            id: session.id,
+            id_khachhang: userId
+        }));
+        console.log('Đã thông báo server khách hàng mở phiên chat:', session.id);
+    }
 }
 function resetUnreadCountUI(sessionId) {
     const sessionItem = document.querySelector(`[data-session-id="${sessionId}"]`);
@@ -962,6 +981,20 @@ function setupEventListeners() {
         closeChatBtn.addEventListener('click', () => {
             const chatboxFb = document.getElementById('chatboxFb');
             chatboxFb.style.display = 'none';
+            
+            // Thông báo server rằng khách hàng đã đóng phiên chat
+            if (window.currentChatSession) {
+                const userIdElement = document.getElementById('userid');
+                if (userIdElement && userIdElement.value) {
+                    const userId = userIdElement.value;
+                    socket.emit('khach-hang-dong-phien-chat', JSON.stringify({
+                        id: window.currentChatSession.id,
+                        id_khachhang: userId
+                    }));
+                    console.log('Đã thông báo server khách hàng đóng phiên chat:', window.currentChatSession.id);
+                }
+            }
+            
             window.currentChatSession = null;
         });
     }
