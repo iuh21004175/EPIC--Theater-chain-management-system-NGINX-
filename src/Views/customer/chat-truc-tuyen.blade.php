@@ -406,6 +406,9 @@
     // Không cho hiển thị nút chatbot AI
     document.addEventListener('DOMContentLoaded', function() {
         // Mã JavaScript ở đây
-        document.getElementById('btn-open-chat').style.display = 'none';
+        const btnOpenChat = document.getElementById('btn-open-chat');
+        if (btnOpenChat) {
+            btnOpenChat.style.display = 'none';
+        }
     });
 </script>
