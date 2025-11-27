@@ -6,25 +6,44 @@ import CustomerSpinner from "./util/spinner-khach-hang.js";
 document.addEventListener('DOMContentLoaded', function() {
     // Ẩn modal tạo phiên chat ban đầu
     const modalCreateSession = document.getElementById('modalCreateSession');
-    modalCreateSession.classList.add('hidden');
+    if (modalCreateSession) {
+        modalCreateSession.classList.add('hidden');
+    }
     
     // Hiển thị danh sách phiên chat
     const chatSessionList = document.getElementById('chatSessionList');
-    chatSessionList.style.display = 'block';
+    if (chatSessionList) {
+        chatSessionList.style.display = 'block';
+    }
     
     const modalLogin = document.getElementById('modalLogin');
-    const userId = document.getElementById('userid').value;
-    const body = document.body;
-    function openModal(modal) { // Hiển thị modal đăng nhập
-        modal.classList.add('is-open');
-        body.classList.add('modal-open');
+    const userIdElement = document.getElementById('userid');
+    
+    // Kiểm tra xem element userid có tồn tại không
+    if (!userIdElement) {
+        console.error('Không tìm thấy element với id "userid"');
+        return;
     }
+    
+    const userId = userIdElement.value;
+    const body = document.body;
+    
+    function openModal(modal) { // Hiển thị modal đăng nhập
+        if (modal) {
+            modal.classList.add('is-open');
+            body.classList.add('modal-open');
+        }
+    }
+    
     // Tải danh sách phiên chat từ server
     if(!userId){
         alert("Vui lòng đăng nhập!");
-        openModal(modalLogin);
+        if (modalLogin) {
+            openModal(modalLogin);
+        }
         return;
     }
+    
     loadChatSessions();
     
     // Xử lý sự kiện
