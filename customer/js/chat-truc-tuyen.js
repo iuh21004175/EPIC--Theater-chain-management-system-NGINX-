@@ -50,7 +50,7 @@ function setupSocketListeners() {
                 nguoi_gui: 2, // 2 = nhân viên
                 created_at: new Date().toISOString(),
                 // Thêm các trường cần thiết để xác định và xử lý hình ảnh
-                loai_noidung: messageData.loai_noidung,
+                loai_noi_dung: messageData.loai_noi_dung,
                 is_image: messageData.is_image
             };
             
@@ -1244,10 +1244,10 @@ function createMessageElement(message) {
     messageDiv.appendChild(headerDiv);
     
     // Kiểm tra loại nội dung: 2 = Hình ảnh
-    if (message.loai_noidung == 2 || message.has_image || message.image_url) {
+    if (message.loai_noi_dung == 2 || message.has_image || message.image_url) {
         // Tin nhắn có ảnh
         // Nếu có nội dung text, và loại nội dung không phải là ảnh hoặc nội dung không có dạng URL hình ảnh
-        if (message.noi_dung && message.noi_dung.trim() !== '' && (message.loai_noidung !== 2 || !message.noi_dung.includes('/chat-images/'))) {
+        if (message.noi_dung && message.noi_dung.trim() !== '' && (message.loai_noi_dung !== 2 || !message.noi_dung.includes('/chat-images/'))) {
             const textDiv = document.createElement('div');
             textDiv.style.lineHeight = '1.4';
             textDiv.style.wordWrap = 'break-word';
@@ -1270,12 +1270,12 @@ function createMessageElement(message) {
             img.src = message.image_url;
             img.dataset.fullImage = message.image_url;
             img.onclick = () => showFullImage(message.image_url);
-        } else if (message.loai_noidung == 2 && message.noi_dung) {
-            // Nếu loai_noidung là 2 và noi_dung là URL ảnh
+        } else if (message.loai_noi_dung == 2 && message.noi_dung) {
+            // Nếu loai_noi_dung là 2 và noi_dung là URL ảnh
             img.src = `${window.config.urlServerMinio}/hinh-anh/` + message.noi_dung;
             img.dataset.fullImage = message.noi_dung;
             img.onclick = () => showFullImage(message.noi_dung);
-        } else if (selectedImageFile && (message.has_image || message.loai_noidung === 2)) {
+        } else if (selectedImageFile && (message.has_image || message.loai_noi_dung === 2)) {
             // Nếu đang upload ảnh (optimistic UI)
             img.src = URL.createObjectURL(selectedImageFile);
             img.onclick = () => showFullImage(img.src);

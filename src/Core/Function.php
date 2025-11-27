@@ -43,8 +43,18 @@
 function getRedisConnection() {
     // Biến static để giữ lại kết nối, chỉ tạo một lần duy nhất
     static $redis = null;
+    static $checked = false;
 
-    if ($redis === null) {
+    // Kiểm tra extension Redis có tồn tại không
+    if (!$checked) {
+        $checked = true;
+        if (!class_exists('Redis')) {
+            error_log("Cảnh báo: Redis class không tồn tại. Vui lòng cài đặt php-redis extension.");
+            return null;
+        }
+    }
+
+    if ($redis === null && class_exists('Redis')) {
         // --- Kết nối Redis bình thường (không SSL) ---
         $host = $_ENV['REDIS_HOST'] ?? 'redis-18469.crce194.ap-seast-1-1.ec2.redns.redis-cloud.com';
         $port = $_ENV['REDIS_PORT'] ?? 18469;
@@ -70,10 +80,10 @@ function getRedisConnection() {
             $redis->ping('+OK');
             $redis->set('my_key', 'Hello from VPS!');
 
-        } catch (\RedisException $e) {
+        } catch (\Exception $e) {
             error_log("Lỗi kết nối Redis Cloud: " . $e->getMessage());
             $redis = null; // Đảm bảo trả về null khi thất bại
-            throw new \Exception("Lỗi kết nối Redis Cloud: " . $e->getMessage());
+            // KHÔNG throw exception, return null để app vẫn hoạt động
         }
     }
 

@@ -628,7 +628,7 @@ function createMessageElement(message) {
     
     // Xử lý nội dung tin nhắn
     // Nếu có ảnh
-    if (message.has_image || message.image_url || message.loai_noidung == 2 || message.is_image) {
+    if (message.has_image || message.image_url || message.loai_noi_dung == 2 || message.is_image) {
         // Tạo container cho ảnh
         const imageContainer = document.createElement('div');
         imageContainer.className = 'message-image-container';
@@ -646,7 +646,7 @@ function createMessageElement(message) {
             
             imageContainer.appendChild(img);
             messageDiv.appendChild(imageContainer);
-        } else if (message.loai_noidung == 2 && message.noi_dung) {
+        } else if (message.loai_noi_dung == 2 && message.noi_dung) {
             // Cải thiện: Đảm bảo noi_dung được xử lý đúng khi là đường dẫn ảnh
             const imageUrl = message.noi_dung.includes('chat-images/') 
                 ? `${document.getElementById('session-list').dataset.urlminio}/hinh-anh/${message.noi_dung}` 
@@ -1194,8 +1194,8 @@ function setupSocketListeners() {
                           (messageContent.noi_dung || JSON.stringify(messageContent)),
                 nguoi_gui: 1, // 1 = khách hàng
                 // Sửa chỗ này - lấy thuộc tính từ messageData thay vì messageContent
-                loai_noidung: messageData.loai_noidung || 
-                         (messageContent && messageContent.loai_noidung) || 
+                loai_noi_dung: messageData.loai_noi_dung || 
+                         (messageContent && messageContent.loai_noi_dung) || 
                          (messageData.is_image ? 2 : 1),
                 is_image: messageData.is_image || 
                      (messageContent && messageContent.is_image) || 

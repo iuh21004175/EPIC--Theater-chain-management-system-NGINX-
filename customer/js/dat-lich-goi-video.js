@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedDate = null;
     
     // Kết nối Socket.IO để nhận thông báo real-time
-    const socket = io('http://localhost:3000/video');
+    const socket = io(window.config.socketUrl);
     
     // Lắng nghe sự kiện khi nhân viên chọn tư vấn
     socket.on('lichgoivideo:dachon', (data) => {

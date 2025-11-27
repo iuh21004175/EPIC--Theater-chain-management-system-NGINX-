@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🔧 Config:', { urlBase, urlInternal });
 
     // Kết nối Socket.IO
-    const socket = io('http://localhost:3000/video');
+    const socket = io(window.config.socketUrl);
 
     // Biến để track xem đã load dữ liệu chưa
     let dataLoaded = false;

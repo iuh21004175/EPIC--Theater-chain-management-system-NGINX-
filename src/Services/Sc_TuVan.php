@@ -28,7 +28,17 @@
                         'id_nhanvien' => null,
                         'trang_thai' => 1 //  (Khách hàng đã xem) vì khi tao phiên chat thì khách hàng đang ở trang chat
                     ]);
-                    getRedisConnection()->publish('khach-hang-tao-phien-chat', json_encode($phienChat));
+                    
+                    // Publish qua Redis nếu có
+                    $redis = getRedisConnection();
+                    if ($redis) {
+                        try {
+                            $redis->publish('khach-hang-tao-phien-chat', json_encode($phienChat));
+                        } catch (\Exception $e) {
+                            error_log("Không thể publish Redis: " . $e->getMessage());
+                        }
+                    }
+                    
                     return $phienChat;
                 }
                 else{
@@ -115,10 +125,17 @@
                         ->where('trang_thai', 0) // Chưa xem
                         ->update(['trang_thai' => 1]); // Cập nhật thành đã xem
                     // Gửi sự kiện qua Redis
-                    getRedisConnection()->publish('khach-hang-mo-phien-chat', json_encode([
-                        'id' => $idPhienChat,
-                        'id_khachhang' => $phienChat->id_khachhang
-                    ]));
+                    $redis = getRedisConnection();
+                    if ($redis) {
+                        try {
+                            $redis->publish('khach-hang-mo-phien-chat', json_encode([
+                                'id' => $idPhienChat,
+                                'id_khachhang' => $phienChat->id_khachhang
+                            ]));
+                        } catch (\Exception $e) {
+                            error_log("Không thể publish Redis: " . $e->getMessage());
+                        }
+                    }
                 }
                 if(isset($_SESSION['UserInternal'])){
                     // Nhân viên mở phiên chat
@@ -129,10 +146,17 @@
                     $phienChat->dang_chat = 1; // Đang chat
                     $phienChat->save();
                     // Gửi sự kiện qua Redis
-                    getRedisConnection()->publish('nhan-vien-mo-phien-chat', json_encode([
-                        'id' => $idPhienChat,
-                        'id_nhanvien' => $_SESSION['UserInternal']['ID']
-                    ]));
+                    $redis = getRedisConnection();
+                    if ($redis) {
+                        try {
+                            $redis->publish('nhan-vien-mo-phien-chat', json_encode([
+                                'id' => $idPhienChat,
+                                'id_nhanvien' => $_SESSION['UserInternal']['ID']
+                            ]));
+                        } catch (\Exception $e) {
+                            error_log("Không thể publish Redis: " . $e->getMessage());
+                        }
+                    }
                 }
             }
 
