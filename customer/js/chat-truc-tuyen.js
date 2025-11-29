@@ -681,6 +681,39 @@ function prependChatMessages(messages) {
 
 
 
+// Hàm download ảnh
+function downloadImage(imageUrl, fileName = 'image.jpg') {
+    // Tạo thẻ a ẩn để trigger download
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = fileName;
+    link.target = '_blank';
+    
+    // Nếu URL không phải cùng origin, cần fetch và tạo blob
+    if (!imageUrl.startsWith(window.location.origin) && imageUrl.startsWith('http')) {
+        fetch(imageUrl)
+            .then(response => response.blob())
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob);
+                link.href = blobUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                // Giải phóng bộ nhớ
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+            })
+            .catch(error => {
+                console.error('Lỗi khi download ảnh:', error);
+                // Fallback: mở ảnh trong tab mới
+                window.open(imageUrl, '_blank');
+            });
+    } else {
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
 // Thêm hàm hiển thị ảnh kích thước đầy đủ
 function showFullImage(imageUrl) {
     // Tìm hoặc tạo image viewer
@@ -691,13 +724,19 @@ function showFullImage(imageUrl) {
         imageViewer.id = 'image-viewer';
         imageViewer.className = 'fixed top-0 left-0 w-full h-full bg-black bg-opacity-90 z-50 flex items-center justify-center';
         imageViewer.innerHTML = `
-            <button class="absolute top-4 right-4 text-white text-4xl">&times;</button>
+            <button class="absolute top-4 right-4 text-white text-4xl hover:text-gray-300" title="Đóng">&times;</button>
+            <button id="download-full-image" class="absolute top-4 right-20 text-white text-2xl hover:text-gray-300 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition" title="Tải xuống">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span class="text-sm font-medium">Tải xuống</span>
+            </button>
             <img id="full-image" class="max-w-[90%] max-h-[90%] object-contain" src="" />
         `;
         
         // Thêm event listener đóng viewer
         imageViewer.addEventListener('click', function(e) {
-            if (e.target === imageViewer || e.target.tagName === 'BUTTON') {
+            if (e.target === imageViewer || e.target.closest('button:not(#download-full-image)')) {
                 imageViewer.classList.add('hidden');
             }
         });
@@ -710,6 +749,16 @@ function showFullImage(imageUrl) {
     // Cập nhật nguồn ảnh
     const fullImage = document.getElementById('full-image');
     fullImage.src = imageUrl;
+    
+    // Cập nhật sự kiện download
+    const downloadBtn = document.getElementById('download-full-image');
+    if (downloadBtn) {
+        downloadBtn.onclick = function(e) {
+            e.stopPropagation();
+            const timestamp = new Date().getTime();
+            downloadImage(imageUrl, `chat-image-${timestamp}.jpg`);
+        };
+    }
 }
 
 // Cập nhật hàm gửi tin nhắn text thông thường
@@ -1317,23 +1366,48 @@ function createMessageElement(message) {
         img.className = 'message-image cursor-pointer';
         img.loading = 'lazy';
         img.alt = 'Hình ảnh';
+        
+        // Tạo nút download
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'message-image-download-btn';
+        downloadBtn.title = 'Tải xuống ảnh';
+        downloadBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+        `;
+        
         // Xác định nguồn ảnh
+        let imageUrl = '';
         if (message.image_url) {
-            img.src = message.image_url;
-            img.dataset.fullImage = message.image_url;
-            img.onclick = () => showFullImage(message.image_url);
+            imageUrl = message.image_url;
+            img.src = imageUrl;
+            img.dataset.fullImage = imageUrl;
+            img.onclick = () => showFullImage(imageUrl);
         } else if (message.loai_noi_dung == 2 && message.noi_dung) {
             // Nếu loai_noi_dung là 2 và noi_dung là URL ảnh
-            img.src = `${window.config.urlServerMinio}/hinh-anh/` + message.noi_dung;
-            img.dataset.fullImage = message.noi_dung;
-            img.onclick = () => showFullImage(message.noi_dung);
+            imageUrl = `${window.config.urlServerMinio}/hinh-anh/` + message.noi_dung;
+            img.src = imageUrl;
+            img.dataset.fullImage = imageUrl;
+            img.onclick = () => showFullImage(imageUrl);
         } else if (selectedImageFile && (message.has_image || message.loai_noi_dung === 2)) {
             // Nếu đang upload ảnh (optimistic UI)
-            img.src = URL.createObjectURL(selectedImageFile);
-            img.onclick = () => showFullImage(img.src);
+            imageUrl = URL.createObjectURL(selectedImageFile);
+            img.src = imageUrl;
+            img.onclick = () => showFullImage(imageUrl);
         } else {
             // Ảnh đang tải hoặc chưa có
             img.src = `${document.getElementById('sessionListUl').dataset.url}/images/loading-image.png`;
+        }
+        
+        // Thêm sự kiện download
+        if (imageUrl) {
+            downloadBtn.onclick = (e) => {
+                e.stopPropagation();
+                const timestamp = new Date().getTime();
+                downloadImage(imageUrl, `chat-image-${timestamp}.jpg`);
+            };
+            imageContainer.appendChild(downloadBtn);
         }
         
         imageContainer.appendChild(img);

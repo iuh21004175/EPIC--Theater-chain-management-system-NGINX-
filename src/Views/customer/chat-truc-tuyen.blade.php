@@ -110,7 +110,13 @@
 
       <!-- Image viewer -->
       <div id="image-viewer" class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-90 z-50 hidden flex items-center justify-center">
-        <button class="absolute top-4 right-4 text-white text-4xl">&times;</button>
+        <button class="absolute top-4 right-4 text-white text-4xl hover:text-gray-300" title="Đóng">&times;</button>
+        <button id="download-full-image" class="absolute top-4 right-20 text-white text-2xl hover:text-gray-300 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition" title="Tải xuống">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span class="text-sm font-medium">Tải xuống</span>
+        </button>
         <img id="full-image" class="max-w-[90%] max-h-[90%] object-contain" src="" />
       </div>
 
@@ -131,12 +137,6 @@
           </svg>
         </button>
       </div>
-    </div>
-
-    <!-- Image viewer khi click vào ảnh -->
-    <div id="image-viewer">
-      <span class="close">&times;</span>
-      <img id="full-image" src="">
     </div>
   </section>
 
@@ -398,6 +398,51 @@
     color: white;
     font-size: 30px;
     cursor: pointer;
+  }
+
+  /* Nút download trên tin nhắn hình ảnh */
+  .message-image-download-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(37, 99, 235, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .message-image-download-btn:hover {
+    background: rgba(29, 78, 216, 0.95);
+    transform: scale(1.1);
+  }
+
+  .message-image-container:hover .message-image-download-btn {
+    opacity: 1;
+  }
+
+  /* Active state khi click */
+  .message-image-download-btn:active {
+    transform: scale(0.95);
+  }
+  
+  /* Preview image container cần có position relative */
+  .preview-image-container {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #f3f4f6;
+    border: 1px solid #e5e7eb;
   }
 </style>
 

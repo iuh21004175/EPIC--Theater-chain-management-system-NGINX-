@@ -20,7 +20,7 @@
 
 @section('content')
     <!-- Page header -->
-    <div class="bg-gradient-to-r from-red-500 via-red-600 to-red-700 rounded-2xl shadow-2xl p-8 mb-8 text-white border border-red-400">
+    <div class="bg-gradient-to-r from-red-500 via-red-600 to-red-700 rounded-2xl shadow-2xl p-8 mb-10 text-white border border-red-400">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-4xl font-bold flex items-center drop-shadow-lg">
@@ -46,7 +46,7 @@
     </div>
 
     <!-- Date range filter -->
-    <div class="mb-8 bg-gradient-to-br from-white via-gray-50 to-white rounded-2xl shadow-xl border-2 border-gray-200 p-8">
+    <div class="mb-12 bg-gradient-to-br from-white via-gray-50 to-white rounded-2xl shadow-xl border-2 border-gray-200 p-8">
         <div class="flex items-center mb-6 pb-4 border-b-2 border-gray-200">
             <div class="bg-red-100 rounded-lg p-2 mr-3">
                 <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +141,7 @@
     </div>
 
     <!-- KPI Summary Cards -->
-    <div id="kpi-summary-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+    <div id="kpi-summary-cards" class="stat-section-don-hang grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
         <!-- Total Revenue Card -->
         <div class="relative bg-gradient-to-br from-white via-red-50 to-white rounded-2xl shadow-2xl p-8 border-2 border-red-200 overflow-hidden group hover:shadow-3xl hover:-translate-y-2 transition-all duration-300">
             <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-500 via-red-600 to-orange-500"></div>
@@ -216,9 +216,9 @@
     </div>
 
     <!-- Main charts -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+    <div class="stat-section-don-hang grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
         <!-- Revenue Trend Chart -->
-        <div class="stat-section-don-hang bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
             <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
                 <div class="w-1.5 h-7 bg-gradient-to-b from-red-500 to-red-600 rounded-full mr-4"></div>
                 <span>Xu hướng doanh thu</span>
@@ -249,7 +249,7 @@
         </div>
 
         <!-- Ticket Sales Trend Chart -->
-        <div class="stat-section-don-hang bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
             <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
                 <div class="w-1.5 h-7 bg-gradient-to-b from-red-500 to-red-600 rounded-full mr-4"></div>
                 <span>Xu hướng lượng vé</span>
@@ -281,9 +281,9 @@
     </div>
 
     <!-- Second row of charts -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+    <div class="stat-section-don-hang grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
         <!-- Theater Performance -->
-        <div class="stat-section-don-hang bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
             <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
                 <div class="w-1.5 h-7 bg-gradient-to-b from-red-500 to-red-600 rounded-full mr-4"></div>
                 <span>Hiệu suất theo rạp</span>
@@ -294,7 +294,7 @@
         </div>
 
         <!-- Revenue Breakdown -->
-        <div class="stat-section-don-hang bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
             <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
                 <div class="w-1.5 h-7 bg-gradient-to-b from-red-500 to-red-600 rounded-full mr-4"></div>
                 <span>Cơ cấu doanh thu</span>
@@ -306,9 +306,9 @@
     </div>
 
     <!-- Third row - Top F&B and F&B Chart -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+    <div class="stat-section-don-hang grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
         <!-- Top F&B Items -->
-        <div id="fnb-analysis" class="stat-section-don-hang bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
+        <div id="fnb-analysis" class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
             <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
                 <div class="w-1.5 h-7 bg-gradient-to-b from-red-500 to-red-600 rounded-full mr-4"></div>
                 <span>Top 10 sản phẩm F&B bán chạy nhất</span>
@@ -358,7 +358,7 @@
         </div>
 
         <!-- F&B vs Ticket Revenue Trend -->
-        <div class="stat-section-don-hang bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
             <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
                 <div class="w-1.5 h-7 bg-gradient-to-b from-red-500 to-red-600 rounded-full mr-4"></div>
                 <span>Tỉ lệ doanh thu F&B trên mỗi đơn hàng</span>
@@ -370,9 +370,9 @@
     </div>
 
     <!-- Fourth row - Top Films and All Films Revenue -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+    <div class="stat-section-don-hang grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
         <!-- Top Films -->
-        <div class="stat-section-don-hang bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
             <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
                 <div class="w-1.5 h-7 bg-gradient-to-b from-red-500 to-red-600 rounded-full mr-4"></div>
                 <span>Top 10 phim có doanh thu cao nhất</span>
@@ -421,7 +421,7 @@
         </div>
 
         <!-- All Films Revenue Table -->
-        <div id="all-films-revenue" class="stat-section-don-hang bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
+        <div id="all-films-revenue" class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
             <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
                 <div class="w-1.5 h-7 bg-gradient-to-b from-red-500 to-red-600 rounded-full mr-4"></div>
                 <span>Doanh thu phim (Toàn bộ phim)</span>
@@ -452,7 +452,7 @@
     <!-- Statistics by Showtime -->
     <div class="stat-section-suat-chieu">
         <!-- Charts for Showtime Statistics -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
             <!-- Revenue Trend by Showtime -->
             <div class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
                 <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
@@ -517,7 +517,7 @@
         </div>
 
         <!-- Second row of charts for Showtime -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
             <!-- Theater Performance by Showtime -->
             <div class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
                 <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
@@ -542,7 +542,7 @@
         </div>
 
         <!-- Revenue by Showtime Table -->
-        <div class="grid grid-cols-1 gap-8 mb-10">
+        <div class="grid grid-cols-1 gap-10 mb-12">
             <div id="revenue-by-showtime" class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-gray-200 hover:shadow-3xl hover:border-gray-300 transition-all duration-300">
                 <h2 class="text-xl font-bold text-gray-800 mb-6 pb-4 border-b-2 border-gray-200 flex items-center">
                     <div class="w-1.5 h-7 bg-gradient-to-b from-red-500 to-red-600 rounded-full mr-4"></div>

@@ -191,27 +191,45 @@
                 $idRapPhim = (int)($_GET['id_rap'] ?? 0);
             }
             
+            error_log("=== DEBUG docKeHoach ===");
+            error_log("batDau: {$batDau}, ketThuc: {$ketThuc}");
+            error_log("idRapPhim: " . ($idRapPhim ?? 'null'));
+            
             // Tìm kế hoạch của tuần này (mỗi tuần chỉ có 1 kế hoạch)
             $keHoach = KeHoachSuatChieu::where('batdau', $batDau)
                 ->where('ketthuc', $ketThuc)
                 ->first();
+            
             
             // Nếu không có kế hoạch, trả về array rỗng
             if (!$keHoach) {
                 return [];
             }
             
+            // ĐẦU TIÊN: Lấy TẤT CẢ chi tiết không filter
+            $allChiTiet = KeHoachChiTiet::where('id_kehoach', $keHoach->id)->get();
+
+            
             // Lấy chi tiết suất chiếu của kế hoạch này, chỉ lấy các suất của rạp hiện tại
-            $query = KeHoachChiTiet::with(['phim', 'phongChieu'])
+            $query = KeHoachChiTiet::with(['phim', 'phongChieu.rapChieuPhim'])
                 ->where('id_kehoach', $keHoach->id);
             
-            if ($idRapPhim) {
-                $query->whereHas('phongChieu', function($q) use ($idRapPhim) {
-                    $q->where('id_rapphim', $idRapPhim);
-                });
+            // DEBUG: Lấy tất cả để test
+            $allResults = KeHoachChiTiet::with(['phim', 'phongChieu.rapChieuPhim'])
+                ->where('id_kehoach', $keHoach->id)
+                ->get();
+    
+            if ($allResults->count() > 0) {
+                $first = $allResults->first();
+               
+                if ($first->phongChieu) {
+                    error_log("First item - phongChieu->id_rapphim: " . ($first->phongChieu->id_rapphim ?? 'null'));
+                }
             }
             
+            
             $chiTietSuatChieu = $query->orderBy('batdau', 'asc')->get();
+            
             
             // Thêm thông tin tổng hợp
             $tongSoSuat = $chiTietSuatChieu->count();

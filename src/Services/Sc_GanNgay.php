@@ -12,6 +12,9 @@
             // Kiểm tra nếu ngày đã tồn tại trong bảng 'ngay'
             $existingNgay = Ngay::where('ngay', $ngay)->first();
             if ($existingNgay) {
+                $existingNgay->dac_biet = $dac_biet;
+                $existingNgay->loai_ngay = $loai_ngay;
+                $existingNgay->save();
                 return $existingNgay->id; // Trả về ID của ngày đã tồn tại
             }
 

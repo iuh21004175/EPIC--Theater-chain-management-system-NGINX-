@@ -30,7 +30,6 @@ use App\Controllers\Ctrl_ThongKe;
 use App\Controllers\Ctrl_TinTuc;
 use App\Controllers\Ctrl_LuongThuong;
 use App\Controllers\Ctrl_ChamCong;
-use App\Controllers\Ctrl_ThongKeToanRap;
 use App\Controllers\Ctrl_DinhVi;
 
 /**
