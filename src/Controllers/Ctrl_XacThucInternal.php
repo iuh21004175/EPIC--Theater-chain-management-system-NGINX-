@@ -28,7 +28,7 @@
                 $scXacThuc = new Sc_XacThucInternal();
                 if ($scXacThuc->scDangNhap()) {
                     // Đăng nhập thành công, chuyển hướng đến trang dashboard
-                    return [ 'status' => 'success', 'message' => 'Đăng nhập thành công!', 'redirect' => './bang-dieu-khien' ];
+                    return [ 'status' => 'success', 'message' => 'Đăng nhập thành công!', 'redirect' => './bang-dieu-khien', 'user_id' => $_SESSION['UserInternal']['ID'], 'user_name' => $_SESSION['UserInternal']['Ten'] ];
                 } else {
                     // Đăng nhập thất bại, hiển thị thông báo lỗi
                     $error = "Tên đăng nhập hoặc mật khẩu không đúng.";
