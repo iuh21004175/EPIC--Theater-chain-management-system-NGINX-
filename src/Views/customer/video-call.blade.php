@@ -195,6 +195,6 @@
         };
     </script>
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <script type="module" src="{{ $_ENV['URL_WEB_BASE'] }}/customer/js/video-call.js"></script>
+    <script type="module" src="{{ $_ENV['URL_WEB_BASE'] }}/js/video-call.js"></script>
 </body>
 </html>
