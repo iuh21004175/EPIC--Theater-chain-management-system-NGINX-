@@ -436,4 +436,10 @@ class Sc_GoiVideo {
             throw new \Exception("Không thể đặt lịch: " . $e->getMessage());
         }
     }
+    public function layThongTinPhongGoiVideo($roomId) {
+        $roomData = LichGoiVideo::with('khachhang', 'nhanvien')
+            ->where('room_id', $roomId)
+            ->first();
+        return $roomData;
+    }
 }

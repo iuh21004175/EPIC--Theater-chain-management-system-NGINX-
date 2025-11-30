@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
                 <td class="px-6 py-4 text-sm">${formatDateTime(lich.thoi_gian_dat)}</td>
                 <td class="px-6 py-4">${getTrangThaiBadge(lich.trang_thai)}</td>
-                <td class="px-6 py-4 text-sm">${lich.nhanvien ? lich.nhanvien.ho_ten : '-'}</td>
+                <td class="px-6 py-4 text-sm">${lich.nhanvien ? lich.nhanvien.ten : '-'}</td>
                 <td class="px-6 py-4 text-right">${getActions(lich)}</td>
             </tr>
         `).join('');

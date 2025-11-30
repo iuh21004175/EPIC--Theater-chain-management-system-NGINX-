@@ -23,8 +23,9 @@ class Ctrl_GoiVideo {
             header('Location: ' . $_ENV['URL_WEB_BASE']);
             exit;
         }
-
-        return view('customer.video-call', ['roomId' => $roomId]);
+        $sc = new Sc_GoiVideo();
+        $roomInfo = $sc->layThongTinPhongGoiVideo($roomId);
+        return view('customer.video-call', ['roomId' => $roomId, 'roomInfo' => $roomInfo]);
     }
 
     // API: Khách hàng đặt lịch gọi video

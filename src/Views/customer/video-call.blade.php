@@ -153,15 +153,21 @@
                     <div class="space-y-2 text-sm">
                         <div class="flex justify-between">
                             <span class="text-gray-400">Thời gian bắt đầu:</span>
-                            <span id="callStartTime">10:00 AM</span>
+                            <span id="callStartTime">{{ $roomInfo->thoi_gian_bat_dau ?? 'Chưa có' }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-400">Chất lượng cuộc gọi:</span>
                             <span id="callQuality" class="text-green-500">Tốt</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-gray-400">Nhân viên tư vấn:</span>
-                            <span id="advisorName">Nguyễn Văn A</span>
+                            @if(isset($_SESSION['user']['id']))
+                                <span class="text-gray-400">Nhân viên tư vấn:</span>
+                                <span id="advisorName">{{ $roomInfo->nhanvien->ten ?? 'Chưa có' }}</span>
+                            @elseif(isset($_SESSION['UserInternal']['ID']))
+                                <span class="text-gray-400">Khách hàng:</span>
+                                <span id="advisorName">{{ $roomInfo->khachhang->ho_ten ?? 'Chưa có' }}</span>
+                            @endif
+                            
                         </div>
                     </div>
                 </div>
