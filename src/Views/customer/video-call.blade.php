@@ -184,9 +184,16 @@
             <h3 class="text-xl font-bold mb-2">Cuộc gọi đã kết thúc</h3>
             <p class="text-gray-300 mb-6">Cảm ơn bạn đã sử dụng dịch vụ tư vấn của EPIC Cinema.</p>
             <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-                <a href="{{ $_ENV['URL_WEB_BASE'] }}" class="flex-1 px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                    Quay về trang chủ
-                </a>
+                @if(isset($_SESSION['user']['id'])){
+                    <a href="{{ $_ENV['URL_WEB_BASE'] }}" class="flex-1 px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        Quay về trang chủ
+                    </a>
+                }
+                @elseif(isset($_SESSION['UserInternal']['ID'])){
+                     <a href="{{ $_ENV['URL_WEB_BASE'] }}/internal/bang-dieu-khien" class="flex-1 px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        Bảng điều khiển
+                    </a>
+                }
                 <button id="callAgain" class="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
                     Gọi lại
                 </button>
