@@ -51,7 +51,8 @@ def check_quality(video_path):
     max_frames = 10  # số frame muốn đọc
 
     # Tạo thư mục lưu frame đạt chuẩn
-    save_dir = "frames_ok"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    save_dir = os.path.join(base_dir, "frames_ok")
     os.makedirs(save_dir, exist_ok=True)
 
     while True:
