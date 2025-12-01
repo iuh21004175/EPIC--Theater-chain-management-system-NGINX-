@@ -50,6 +50,7 @@
             $userId = $_SESSION['user']['id'];
             $userName = $_SESSION['user']['ho_ten'] ?? 'Khách hàng';
             $userType = 'customer';
+            echo $path;
         } 
         if (str_contains($path, 'internal')) {
             // Nhân viên
