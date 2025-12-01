@@ -45,12 +45,13 @@
         $userName = '';
         $userType = '';
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        echo $path;
         if (!str_contains($path, 'internal')) {
             // Khách hàng
             $userId = $_SESSION['user']['id'];
             $userName = $_SESSION['user']['ho_ten'] ?? 'Khách hàng';
             $userType = 'customer';
-            echo $path;
+            
         } 
         if (str_contains($path, 'internal')) {
             // Nhân viên

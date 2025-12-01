@@ -47,13 +47,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!roomId) {
         alert('Thiếu thông tin phòng gọi video');
-        window.location.href = '/';
+        // window.location.href = '/';
         return;
     }
     
     if (!userId) {
         alert('Vui lòng đăng nhập để tham gia cuộc gọi');
-        window.location.href = '/';
+        // window.location.href = '/';
         return;
     }
 
