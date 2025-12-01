@@ -44,16 +44,14 @@
         $userId = '';
         $userName = '';
         $userType = '';
-        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        echo $path;
-        if (!str_contains($path, 'internal')) {
+        if (isset($_SESSION['user'])) {
             // Khách hàng
             $userId = $_SESSION['user']['id'];
             $userName = $_SESSION['user']['ho_ten'] ?? 'Khách hàng';
             $userType = 'customer';
             
         } 
-        if (str_contains($path, 'internal')) {
+        if (isset($_SESSION['UserInternal'])) {
             // Nhân viên
             $userId = $_SESSION['UserInternal']['ID'];
             $userName = $_SESSION['UserInternal']['Ten'] ?? 'Nhân viên';
@@ -163,11 +161,11 @@
                             <span id="callQuality" class="text-green-500">Tốt</span>
                         </div>
                         <div class="flex justify-between">
-                            @if(!str_contains($path, 'internal'))
+                            @if(isset($_SESSION['user']))
                                 <span class="text-gray-400">Nhân viên tư vấn:</span>
                                 <span id="advisorName">{{ $roomInfo->nhanvien->ten ?? 'Chưa có' }}</span>
                             @endif
-                            @if(str_contains($path, 'internal'))
+                            @if(isset($_SESSION['UserInternal']))
                                 <span class="text-gray-400">Khách hàng:</span>
                                 <span id="advisorName">{{ $roomInfo->khachhang->ho_ten ?? 'Chưa có' }}</span>
                             @endif
@@ -188,13 +186,13 @@
             <h3 class="text-xl font-bold mb-2">Cuộc gọi đã kết thúc</h3>
             <p class="text-gray-300 mb-6">Cảm ơn bạn đã sử dụng dịch vụ tư vấn của EPIC Cinema.</p>
             <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-                @if(!str_contains($path, 'internal'))
+                @if(isset($_SESSION['user']))
                     <a href="{{ $_ENV['URL_WEB_BASE'] }}" class="flex-1 px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
                         Quay về trang chủ
                     </a>
                 
                 @endif
-                @if(str_contains($path, 'internal'))
+                @if(isset($_SESSION['UserInternal']))
                      <a href="{{ $_ENV['URL_WEB_BASE'] }}/internal/bang-dieu-khien" class="flex-1 px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
                         Bảng điều khiển
                     </a>
