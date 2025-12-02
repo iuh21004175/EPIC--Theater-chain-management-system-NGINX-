@@ -90,7 +90,7 @@ def check_quality(video_path):
     # Ngưỡng đánh giá chất lượng
     BRIGHTNESS_MIN = 50
     BRIGHTNESS_MAX = 230
-    SHARPNESS_MIN = 150
+    SHARPNESS_MIN = 25
     NOISE_MAX = 100
     CONTRAST_MIN = 10
 
