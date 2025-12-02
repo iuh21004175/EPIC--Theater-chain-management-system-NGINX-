@@ -451,11 +451,42 @@ document.addEventListener("DOMContentLoaded", async function () {
                 }
             };
 
+            // Parse a datetime value returned by API.
+            // Accepts full ISO strings, timestamps, or time-only strings like "15:14:03".
+            function parseDateTime(value) {
+                if (!value && value !== 0) return null;
+                if (typeof value === 'number') {
+                    const d = new Date(value);
+                    return isNaN(d) ? null : d;
+                }
+                // If it's an ISO-like string (contains '-' or 'T'), use built-in parser
+                if (typeof value === 'string' && (value.indexOf('-') !== -1 || value.indexOf('T') !== -1)) {
+                    const d = new Date(value);
+                    return isNaN(d) ? null : d;
+                }
+                // Match HH:MM or HH:MM:SS
+                if (typeof value === 'string') {
+                    const m = value.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+                    if (m) {
+                        const now = new Date();
+                        const hh = parseInt(m[1], 10);
+                        const mm = parseInt(m[2], 10);
+                        const ss = m[3] ? parseInt(m[3], 10) : 0;
+                        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, ss);
+                        return d;
+                    }
+                    // Fallback to Date constructor
+                    const d2 = new Date(value);
+                    return isNaN(d2) ? null : d2;
+                }
+                return null;
+            }
+
             if (result.success && result.data.length > 0) {
                 tbody.innerHTML = result.data.map(record => {
                     const ngayCham = record.ngay || record.ngay_cham;
-                    const gioVao = record.gio_vao ? new Date(record.gio_vao) : null;
-                    const gioRa = record.gio_ra ? new Date(record.gio_ra) : null;
+                    const gioVao = parseDateTime(record.gio_vao);
+                    const gioRa = parseDateTime(record.gio_ra);
                     const ca = record.ca || '';
                     const trangThaiDB = record.trang_thai; // 0 hoặc 1 từ database
                     
@@ -467,73 +498,36 @@ document.addEventListener("DOMContentLoaded", async function () {
                     // Logic xác định trạng thái
                     let trangThai = '';
                     let badgeColor = '';
-                    
-                    if (trangThaiDB === 0) {
-                        // Chưa chấm công
-                        trangThai = 'Chưa chấm';
-                        badgeColor = 'bg-yellow-100 text-yellow-800';
-                    } else if (!gioVao && !gioRa) {
-                        // Nghỉ
-                        trangThai = 'Nghỉ';
-                        badgeColor = 'bg-gray-100 text-gray-800';
-                    } else if (gioVao && gioRa) {
-                        // Đã chấm công đầy đủ
-                        const config = caConfig[ca];
-                        if (config) {
-                            // Tạo thời gian chuẩn cho giờ vào
-                            const [gioChuan, phutChuan] = config.gioVaoChuan.split(':').map(Number);
-                            const gioVaoChuan = new Date(gioVao);
-                            gioVaoChuan.setHours(gioChuan, phutChuan, 0, 0);
-                            
-                            // Kiểm tra giờ vào có nằm trong giờ mở cửa rạp không
-                            const gioVaoHour = gioVao.getHours();
-                            const gioRaHour = gioRa.getHours();
-                            
-                            // Cho phép trễ 15 phút
-                            const cheLenh = 15 * 60 * 1000; // 15 phút
-                            
-                            // Kiểm tra vào trước giờ mở cửa
-                            if (gioVaoHour < config.gioMoCua) {
-                                trangThai = 'Vào sớm';
-                                badgeColor = 'bg-blue-100 text-blue-800';
-                            }
-                            // Kiểm tra đi muộn
-                            else if (gioVao > gioVaoChuan.getTime() + cheLenh) {
-                                trangThai = 'Muộn';
-                                badgeColor = 'bg-red-100 text-red-800';
-                            }
-                            // Kiểm tra về sớm (trước giờ ra chuẩn > 30 phút)
-                            else if (gioRa && config.gioRaChuan) {
-                                const [gioRaC, phutRaC] = config.gioRaChuan.split(':').map(Number);
-                                const gioRaChuan = new Date(gioRa);
-                                gioRaChuan.setHours(gioRaC, phutRaC, 0, 0);
-                                
-                                if (gioRa < gioRaChuan.getTime() - 30 * 60 * 1000) {
-                                    trangThai = 'Về sớm';
-                                    badgeColor = 'bg-orange-100 text-orange-800';
-                                } else {
-                                    trangThai = 'Đúng giờ';
-                                    badgeColor = 'bg-green-100 text-green-800';
-                                }
-                            } else {
-                                trangThai = 'Đúng giờ';
-                                badgeColor = 'bg-green-100 text-green-800';
-                            }
-                            
-                            // Kiểm tra ra sau giờ đóng cửa
-                            if (gioRaHour >= config.gioDongCua || (gioRaHour === 22 && gioRa.getMinutes() > 0)) {
-                                trangThai = 'Tăng ca';
-                                badgeColor = 'bg-purple-100 text-purple-800';
-                            }
-                        } else {
+
+                    if (trangThaiDB == 0) {
+                        // Lịch làm
+                        if (!gioVao && !gioRa) {
+                            // Chưa chấm công
+                            trangThai = 'Chưa chấm';
+                            badgeColor = 'bg-yellow-100 text-yellow-800';
+                        } else if (gioVao && !gioRa) {
+                            // Đã chấm vào, chưa chấm ra
+                            trangThai = 'Đang làm';
+                            badgeColor = 'bg-blue-100 text-blue-800';
+                        } else if (gioVao && gioRa) {
+                            // Đã chấm vào và chấm ra
                             trangThai = 'Đã chấm';
                             badgeColor = 'bg-green-100 text-green-800';
                         }
-                    } else if (gioVao && !gioRa) {
-                        // Chỉ chấm vào, chưa chấm ra
-                        trangThai = 'Đang làm';
-                        badgeColor = 'bg-blue-100 text-blue-800';
+                    } else if (trangThaiDB === 1) {
+                        // Chờ duyệt (xin nghỉ)
+                        trangThai = 'Chờ duyệt';
+                        badgeColor = 'bg-orange-100 text-orange-800';
+                    } else if (trangThaiDB == 2) {
+                        // Đã duyệt nghỉ
+                        trangThai = 'Đã duyệt nghỉ';
+                        badgeColor = 'bg-gray-100 text-gray-800';
+                    } else if (trangThaiDB == 3) {
+                        // Từ chối
+                        trangThai = 'Từ chối';
+                        badgeColor = 'bg-red-100 text-red-800';
                     } else {
+                        // Trường hợp không xác định
                         trangThai = 'Không xác định';
                         badgeColor = 'bg-gray-100 text-gray-800';
                     }
