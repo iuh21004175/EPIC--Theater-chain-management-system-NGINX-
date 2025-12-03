@@ -75,7 +75,7 @@
                         </div>
 
                         <!-- Dropdown menu - hidden by default -->
-                        <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 hidden" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" id="user-menu">
+                        <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 hidden" style="z-index: 1" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" id="user-menu">
                             <a href="{{$_ENV['URL_INTERNAL_BASE']}}/thong-tin-ca-nhan" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
                                 Thông tin cá nhân
                             </a>
