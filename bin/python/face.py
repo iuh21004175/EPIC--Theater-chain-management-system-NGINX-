@@ -191,7 +191,7 @@ def faceToEmbedding(video_path, sample_rate=5, resize_width=960, device=None, mt
 
 
 def save_embedding(embedding, id_employee):
-    """Lưu embedding vào ChromaDB (HTTP API dùng vectors, không dùng embeddings)"""
+    """Lưu embedding vào ChromaDB"""
     if collection is None:
         print("ERROR: Collection not initialized")
         return False
@@ -200,35 +200,41 @@ def save_embedding(embedding, id_employee):
     emb_list = embedding.tolist()
 
     try:
-        existing  = collection.get(ids=[target_id], include=["embeddings"])
-
+        # Kiểm tra xem ID đã tồn tại chưa
+        existing = collection.get(ids=[target_id], include=["embeddings"])
+        
         ts = datetime.datetime.now().isoformat()
-
+        
         metadata = {
             "id_employee": str(id_employee),
-            "updated_at" if existing and existing.get("ids") else "created_at": ts
+            "updated_at": ts
         }
-        if existing and existing.get("ids"): # HTTP API: dùng vectors 
-            collection.upsert( ids=[target_id], embeddings=[emb_list], metadatas=[metadata] ) 
-            print(f"SUCCESS: Updated embedding for ID={id_employee}") 
-        else: 
-            collection.add( ids=[target_id], vectors=[emb_list], metadatas=[metadata] ) 
-            print(f"SUCCESS: Added new embedding for ID={id_employee}") 
-            return True
-       
-            # HTTP API: dùng vectors
-        collection.upsert(
-            ids=[target_id],
-            embeddings=[emb_list],
-            metadatas=[metadata]
-        )
-        print(f"SUCCESS: Updated embedding for ID={id_employee}")
-      
-
+        
+        # Nếu đã tồn tại thì update, chưa thì add mới
+        if existing and existing.get("ids") and len(existing["ids"]) > 0:
+            # Update existing embedding
+            collection.update(
+                ids=[target_id],
+                embeddings=[emb_list],
+                metadatas=[metadata]
+            )
+            print(f"SUCCESS: Updated embedding for ID={id_employee} - {datetime.datetime.now()}")
+        else:
+            # Add new embedding
+            metadata["created_at"] = ts
+            collection.add(
+                ids=[target_id],
+                embeddings=[emb_list],
+                metadatas=[metadata]
+            )
+            print(f"SUCCESS: Added new embedding for ID={id_employee} - {datetime.datetime.now()}")
+        
         return True
 
     except Exception as e:
-        print(f"ERROR: Failed to save embedding: {e}")
+        print(f"ERROR: Failed to save embedding: {e} - {datetime.datetime.now()}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
