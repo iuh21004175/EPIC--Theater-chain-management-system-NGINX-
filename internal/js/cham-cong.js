@@ -355,7 +355,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 // if recording, stop and reset (will retry)
                 if (recording) stopRecordingAndReset();
                 // show warning
-                if (statusContent) statusContent.innerHTML = '<p class="text-yellow-700">Nhiều hơn một khuôn mặt — chỉ chấm công khi chỉ còn 1 khuôn mặt</p>';
+                // if (statusContent) statusContent.innerHTML = '<p class="text-yellow-700">Nhiều hơn một khuôn mặt — chỉ chấm công khi chỉ còn 1 khuôn mặt</p>';
             } else {
                 // no face
                 if (facePresent) {
@@ -367,12 +367,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                         stopRecordingAndReset();
                         if (armedAction) {
                             // keep armedAction so user can try again without re-clicking within arm timeout
-                            if (statusContent) statusContent.innerHTML = '<p class="text-gray-600">Khuôn mặt biến mất — thử lại</p>';
+                            // if (statusContent) statusContent.innerHTML = '<p class="text-gray-600">Khuôn mặt biến mất — thử lại</p>';
                         }
                     }
                 }
                 // update UI
-                if (statusContent) statusContent.innerHTML = '<p class="text-gray-600">Không thấy khuôn mặt — vui lòng quay lại khung hình</p>';
+                // if (statusContent) statusContent.innerHTML = '<p class="text-gray-600">Không thấy khuôn mặt — vui lòng quay lại khung hình</p>';
             }
         } catch (err) {
             console.warn('detect error', err);

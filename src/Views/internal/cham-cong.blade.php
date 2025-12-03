@@ -37,9 +37,9 @@
     </div>
 
     <!-- Main Grid Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        <!-- Left Column: Camera & Registration Status -->
-        <div class="lg:col-span-2 space-y-6">
+    <div class="">
+        <!-- Left Column: Camera & Registration Status (expanded) -->
+        <div class="lg:col-span-3 space-y-6">
             <!-- Registration Status Card -->
             <div id="registrationStatus" class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-md border border-blue-100 p-6" data-url="{{$_ENV['URL_WEB_BASE']}}">
                 <div class="flex items-center gap-3 mb-4">
@@ -105,28 +105,7 @@
             </div>
         </div>
 
-        <!-- Right Column: Today's Attendance -->
-        <div class="lg:col-span-1">
-            <div class="bg-white rounded-xl shadow-lg p-6 sticky top-6">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="p-2 bg-purple-600 rounded-lg">
-                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-900">Chấm công hôm nay</h3>
-                </div>
-                <div id="todayAttendance" class="space-y-4">
-                    <div class="text-center py-12">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <p class="mt-4 text-gray-500 font-medium">Chưa có dữ liệu</p>
-                        <p class="mt-1 text-sm text-gray-400">Thực hiện check in để bắt đầu</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Right column removed: Today's Attendance box intentionally hidden to expand camera area -->
     </div>
 
     <!-- History Table -->
