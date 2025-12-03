@@ -58,6 +58,31 @@ document.addEventListener("DOMContentLoaded", async function () {
     let armedTimeoutId = null;
     const ARM_TIMEOUT_MS = 15000; // cancel arm after 15s if no action
 
+    // Global variable to store shift history (lịch sử chấm công)
+    let shiftHistory = [];
+
+    // Standard shift definitions (giờ chuẩn cho từng ca)
+    const CA_CONFIG = {
+        'Ca sáng': { 
+            gioVaoChuan: '08:00', 
+            gioRaChuan: '12:00',
+            gioMoCua: 8,
+            gioDongCua: 22
+        },
+        'Ca chiều': { 
+            gioVaoChuan: '12:00', 
+            gioRaChuan: '17:00',
+            gioMoCua: 8,
+            gioDongCua: 22
+        },
+        'Ca tối': { 
+            gioVaoChuan: '17:00', 
+            gioRaChuan: '22:00',
+            gioMoCua: 8,
+            gioDongCua: 22
+        }
+    };
+
     // init MediaPipe face detector
     async function initDetector() {
         try {
@@ -214,11 +239,19 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (armedTimeoutId) { clearTimeout(armedTimeoutId); armedTimeoutId = null; }
             armedAction = null;
             try {
+                // Find current shift (ca hiện tại) based on current time
+                const currentShift = getCurrentShift();
+                
                 const formData = new FormData();
                 formData.append('video', blob, `face_record_${Date.now()}.webm`);
                 formData.append('loai', action);
                 formData.append('wifiTen', cameraSection.dataset.ten);
                 formData.append('token', await getTokenApi());
+                
+                // Add id_phancong if current shift is found
+                if (currentShift && currentShift.id) {
+                    formData.append('id_phancong', currentShift.id);
+                }
                 const res = await fetch(`${API_URL}/cham-cong/cham-cong`, {
                     method: 'POST',
                     body: formData
@@ -380,6 +413,44 @@ document.addEventListener("DOMContentLoaded", async function () {
         requestAnimationFrame(detectLoop);
     }
 
+    // Helper: Find current shift assignment based on current time and today's date
+    function getCurrentShift() {
+        const now = new Date();
+        const today = now.toISOString().slice(0, 10); // YYYY-MM-DD
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        
+        // Find today's shifts from shiftHistory
+        const todayShifts = shiftHistory.filter(record => {
+            const recordDate = (record.ngay || record.ngay_cham);
+            return recordDate === today;
+        });
+        
+        // Match current time against shift definitions
+        for (const shift of todayShifts) {
+            const ca = shift.ca;
+            const config = CA_CONFIG[ca];
+            if (!config) continue;
+            
+            // Parse shift start/end times
+            const [startHour, startMin] = config.gioVaoChuan.split(':').map(Number);
+            const [endHour, endMin] = config.gioRaChuan.split(':').map(Number);
+            
+            // Check if current time falls within this shift (with tolerance)
+            const currentTimeMinutes = currentHour * 60 + currentMinute;
+            const shiftStartMinutes = startHour * 60 + startMin;
+            const shiftEndMinutes = endHour * 60 + endMin;
+            
+            // Allow 30 minutes before shift start and after shift end
+            if (currentTimeMinutes >= (shiftStartMinutes - 30) && currentTimeMinutes <= (shiftEndMinutes + 30)) {
+                return shift; // Return the matching shift record (contains id, ca, etc.)
+            }
+        }
+        
+        // If no exact match, return the first shift of today (fallback)
+        return todayShifts.length > 0 ? todayShifts[0] : null;
+    }
+
     // original checkRegistrationStatus + loadHistory functions (reuse existing)
     async function checkRegistrationStatus() {
         try {
@@ -429,27 +500,13 @@ document.addEventListener("DOMContentLoaded", async function () {
             const response = await fetch(`${API_URL}/cham-cong/lich-su`);
             const result = await response.json();
             const tbody = document.getElementById('historyTableBody');
-            // Standard shift definitions (used for display and status checks)
-            const caConfig = {
-                'Ca sáng': { 
-                    gioVaoChuan: '08:00', 
-                    gioRaChuan: '12:00',
-                    gioMoCua: 8,
-                    gioDongCua: 22
-                },
-                'Ca chiều': { 
-                    gioVaoChuan: '12:00', 
-                    gioRaChuan: '17:00',
-                    gioMoCua: 8,
-                    gioDongCua: 22
-                },
-                'Ca tối': { 
-                    gioVaoChuan: '17:00', 
-                    gioRaChuan: '22:00',
-                    gioMoCua: 8,
-                    gioDongCua: 22
-                }
-            };
+            
+            // Save history to global variable
+            if (result.success && result.data) {
+                shiftHistory = result.data;
+            } else {
+                shiftHistory = [];
+            }
 
             // Parse a datetime value returned by API.
             // Accepts full ISO strings, timestamps, or time-only strings like "15:14:03".
@@ -482,86 +539,136 @@ document.addEventListener("DOMContentLoaded", async function () {
                 return null;
             }
 
-            if (result.success && result.data.length > 0) {
-                tbody.innerHTML = result.data.map(record => {
-                    const ngayCham = record.ngay || record.ngay_cham;
-                    const gioVao = parseDateTime(record.gio_vao);
-                    const gioRa = parseDateTime(record.gio_ra);
-                    const ca = record.ca || '';
-                    const trangThaiDB = record.trang_thai; // 0 hoặc 1 từ database
+        if (result.success && result.data.length > 0) {
+            tbody.innerHTML = result.data.map(record => {
+                const ngayCham = record.ngay || record.ngay_cham;
+                const gioVao = parseDateTime(record.gio_vao);
+                const gioRa = parseDateTime(record.gio_ra);
+                const ca = record.ca || '';
+                const trangThaiDB = record.trang_thai;
+                
+                // Tính số giờ làm việc
+                const soGio = gioVao && gioRa ? ((gioRa - gioVao) / 3600000).toFixed(2) : '-';
+                
+                // Lấy config của ca
+                const configForCa = CA_CONFIG[ca];
+                
+                // Tính toán trạng thái sớm/muộn cho giờ vào
+                let gioVaoText = gioVao ? gioVao.toLocaleTimeString('vi-VN') : '-';
+                if (gioVao && configForCa) {
+                    const [gioChuan, phutChuan] = configForCa.gioVaoChuan.split(':').map(Number);
+                    const gioVaoChuan = new Date(gioVao);
+                    gioVaoChuan.setHours(gioChuan, phutChuan, 0, 0);
                     
-                    // Tính số giờ làm việc
-                    const soGio = gioVao && gioRa ? ((gioRa - gioVao) / 3600000).toFixed(2) : '-';
+                    const chenhLechPhut = Math.round((gioVao - gioVaoChuan) / 60000);
+                    if (chenhLechPhut < 0) {
+                        gioVaoText += ` <span class="text-green-600">(sớm)</span>`;
+                    } else if (chenhLechPhut > 0) {
+                        gioVaoText += ` <span class="text-red-600">(muộn)</span>`;
+                    }
+                }
+                
+                // Tính toán trạng thái sớm/muộn cho giờ ra
+                let gioRaText = gioRa ? gioRa.toLocaleTimeString('vi-VN') : '-';
+                if (gioRa && configForCa) {
+                    const [gioChuan, phutChuan] = configForCa.gioRaChuan.split(':').map(Number);
+                    const gioRaChuan = new Date(gioRa);
+                    gioRaChuan.setHours(gioChuan, phutChuan, 0, 0);
                     
-                    // caConfig is defined above
+                    const chenhLechPhut = Math.round((gioRa - gioRaChuan) / 60000);
+                    if (chenhLechPhut < 0) {
+                        gioRaText += ` <span class="text-red-600">(sớm)</span>`;
+                    } else if (chenhLechPhut > 0) {
+                        gioRaText += ` <span class="text-green-600">(muộn)</span>`;
+                    }
+                }
+                
+                // Tính toán đủ/thiếu giờ
+                let soGioText = soGio;
+                if (soGio !== '-' && configForCa) {
+                    const [gioVaoH, gioVaoM] = configForCa.gioVaoChuan.split(':').map(Number);
+                    const [gioRaH, gioRaM] = configForCa.gioRaChuan.split(':').map(Number);
+                    const soGioChuan = (gioRaH * 60 + gioRaM - gioVaoH * 60 - gioVaoM) / 60;
+                    const soGioThucTe = parseFloat(soGio);
                     
-                    // Logic xác định trạng thái
-                    let trangThai = '';
-                    let badgeColor = '';
+                    const chenhLech = (soGioThucTe - soGioChuan).toFixed(2);
+                    if (chenhLech < 0) {
+                        soGioText += ` <span class="text-red-600">(thiếu ${Math.abs(chenhLech)}h)</span>`;
+                    } else if (chenhLech > 0) {
+                        soGioText += ` <span class="text-green-600">(dư ${chenhLech}h)</span>`;
+                    } else {
+                        soGioText += ` <span class="text-gray-600">(đủ)</span>`;
+                    }
+                }
+                
+                // Logic xác định trạng thái
+                let trangThai = '';
+                let badgeColor = '';
 
-                    if (trangThaiDB == 0) {
-                        // Lịch làm
-                        if (!gioVao && !gioRa) {
-                            // Chưa chấm công
+                if (trangThaiDB != 2) {
+                    if (!gioVao && !gioRa) {
+                        const now = new Date();
+                        const currentHour = now.getHours();
+                        const currentMinute = now.getMinutes();
+                        let withinShift = false;
+                        if (configForCa) {
+                            const [startHour, startMin] = configForCa.gioVaoChuan.split(':').map(Number);
+                            const [endHour, endMin] = configForCa.gioRaChuan.split(':').map(Number);
+                            const currentTimeMinutes = currentHour * 60 + currentMinute;
+                            const shiftStartMinutes = startHour * 60 + startMin;
+                            const shiftEndMinutes = endHour * 60 + endMin;
+                            if (currentTimeMinutes >= (shiftStartMinutes - 30) && currentTimeMinutes <= (shiftEndMinutes + 30)) {
+                                withinShift = true;
+                            }
+                        }
+                        if (withinShift) {
                             trangThai = 'Chưa chấm';
                             badgeColor = 'bg-yellow-100 text-yellow-800';
-                        } else if (gioVao && !gioRa) {
-                            // Đã chấm vào, chưa chấm ra
-                            trangThai = 'Đang làm';
-                            badgeColor = 'bg-blue-100 text-blue-800';
-                        } else if (gioVao && gioRa) {
-                            // Đã chấm vào và chấm ra
-                            trangThai = 'Đã chấm';
-                            badgeColor = 'bg-green-100 text-green-800';
+                        } else {
+                            trangThai = 'Chưa chấm (ngoài giờ)';
+                            badgeColor = 'bg-gray-100 text-gray-800';
                         }
-                    } else if (trangThaiDB === 1) {
-                        // Chờ duyệt (xin nghỉ)
-                        trangThai = 'Chờ duyệt';
-                        badgeColor = 'bg-orange-100 text-orange-800';
-                    } else if (trangThaiDB == 2) {
-                        // Đã duyệt nghỉ
-                        trangThai = 'Đã duyệt nghỉ';
-                        badgeColor = 'bg-gray-100 text-gray-800';
-                    } else if (trangThaiDB == 3) {
-                        // Từ chối
-                        trangThai = 'Từ chối';
-                        badgeColor = 'bg-red-100 text-red-800';
-                    } else {
-                        // Trường hợp không xác định
-                        trangThai = 'Không xác định';
-                        badgeColor = 'bg-gray-100 text-gray-800';
+                    } else if (gioVao && !gioRa) {
+                        trangThai = 'Đang làm';
+                        badgeColor = 'bg-blue-100 text-blue-800';
+                    } else if (gioVao && gioRa) {
+                        trangThai = 'Đã chấm';
+                        badgeColor = 'bg-green-100 text-green-800';
                     }
-                    
-                    const configForCa = caConfig[ca];
-                    const standardTime = configForCa ? `${configForCa.gioVaoChuan} - ${configForCa.gioRaChuan}` : '';
+                }  else if (trangThaiDB == 2) {
+                    trangThai = 'Đã duyệt nghỉ';
+                    badgeColor = 'bg-gray-100 text-gray-800';
+                }
+                
+                const standardTime = configForCa ? `${configForCa.gioVaoChuan} - ${configForCa.gioRaChuan}` : '';
 
-                    return `
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${ngayCham ? new Date(ngayCham).toLocaleDateString('vi-VN') : '-'}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <div class="font-medium text-gray-900">${ca || '-'}</div>
-                                ${standardTime ? `<div class="text-xs text-gray-500 mt-1">${standardTime}</div>` : ''}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${gioVao ? gioVao.toLocaleTimeString('vi-VN') : '-'}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${gioRa ? gioRa.toLocaleTimeString('vi-VN') : '-'}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${soGio}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeColor}">
-                                    ${trangThai}
-                                </span>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            } else {
+                return `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${ngayCham ? new Date(ngayCham).toLocaleDateString('vi-VN') : '-'}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div class="font-medium text-gray-900">${ca || '-'}</div>
+                            ${standardTime ? `<div class="text-xs text-gray-500 mt-1">${standardTime}</div>` : ''}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${gioVaoText}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${gioRaText}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            ${soGioText}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeColor}">
+                                ${trangThai}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
                 document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Chưa có lịch sử chấm công</td></tr>';
             }
         } catch (err) {

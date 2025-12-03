@@ -336,9 +336,12 @@ class Sc_ChamCong
         // 5. Lưu vào bảng chấm công
         $ngayHienTai = date('Y-m-d');
         $gioHienTai = date('Y-m-d H:i:s');
-        
+        if(!isset($_POST['id_phancong'])){
+            throw new Exception('Nhận diện khuôn mặt thành công nhưng không tìm thấy bản ghi phân công hiện tại.');
+        }
         $daChamCong = PhanCong::where('id_nhanvien', $idNhanVien)
             ->where('ngay', $ngayHienTai)
+            ->where('id', $_POST['id_phancong'])
             ->first();
         
         if ($daChamCong) {
