@@ -12,6 +12,10 @@
     </div>
 </li>
 @endsection
+@section('head')
+    <script src="https://cdn.jsdelivr.net/npm/air-datepicker@3.6.0/air-datepicker.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/air-datepicker@3.6.0/air-datepicker.min.css">
+@endsection
 
 @section('content')
 <div class="px-4 py-6 max-w-5xl mx-auto">
@@ -29,15 +33,15 @@
         <div class="mb-6 p-4 border rounded shadow bg-white">
             <h3 class="font-semibold mb-4">Thông tin yêu cầu nghỉ làm</h3>
             <div class="mb-4">
-                <label class="block font-medium mb-1">Chọn ngày & ca</label>
+                <label class="block font-medium mb-2 text-gray-700">Chọn ngày</label>
+                <input id="ngayPhanCong" type="text" class="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200" placeholder="Chọn ngày...">
+            </div>
+            <div class="mb-4">
+                <label class="block font-medium mb-1">Chọn ca làm việc</label>
                 <select id="leave-shift" class="border rounded px-3 py-2 w-full">
-                    <option value="">-- Chọn ca --</option>
-                    <option value="0">Ca sáng</option>
-                    <option value="1">Ca chiều</option>
-                    <option value="2">Ca tối</option>
+                    <option value="">Đang tải...</option>
                 </select>
             </div>
-
             <div class="mb-4">
                 <label class="block font-medium mb-1">Lý do</label>
                 <textarea id="leave-reason" rows="3" class="border rounded px-3 py-2 w-full" placeholder="Nhập lý do xin nghỉ"></textarea>
@@ -112,9 +116,102 @@
 <script src="https://cdn.tiny.cloud/1/tluao2wh6pnxfechhnbj6wumfwolk3sulz86lkh62iu2mmjm/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    let tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    new AirDatepicker('#ngayPhanCong', {
+        dateFormat: 'dd/MM/yyyy',
+        selectedDates: [tomorrow],  // ngày mặc định
+        minDate: tomorrow,          // không cho chọn ngày nhỏ hơn
+        autoClose: true,
+        locale: {
+            days: ['Chủ Nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'],
+            daysShort: ['CN','T2','T3','T4','T5','T6','T7'],
+            daysMin: ['CN','T2','T3','T4','T5','T6','T7'],
+            months: ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'],
+            monthsShort: ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'],
+            today: 'Hôm nay',
+            clear: 'Xóa',
+            dateFormat: 'dd/MM/yyyy',
+            timeFormat: 'HH:mm',
+            firstDay: 1
+        },
+        onSelect({date, formattedDate, datepicker}) {
+            const ymd = formatDateYMD(date);
+            loadPhanCongChoNgay(ymd);
+        }
+    });
+    const CA_CONFIG = {
+        'Ca sáng': { 
+            gioVaoChuan: '08:00', 
+            gioRaChuan: '12:00',
+            gioMoCua: 8,
+            gioDongCua: 22
+        },
+        'Ca chiều': { 
+            gioVaoChuan: '12:00', 
+            gioRaChuan: '17:00',
+            gioMoCua: 8,
+            gioDongCua: 22
+        },
+        'Ca tối': { 
+            gioVaoChuan: '17:00', 
+            gioRaChuan: '22:00',
+            gioMoCua: 8,
+            gioDongCua: 22
+        }
+    };
     const baseUrl = "{{ $_ENV['URL_WEB_BASE'] }}";
     const urlMinio = "{{ $_ENV['MINIO_SERVER_URL'] }}";
+    const leaveShift = document.getElementById('leave-shift');
+    function formatDateYMD(date) {
+        let y = date.getFullYear();
+        let m = String(date.getMonth() + 1).padStart(2, '0');
+        let d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+    function loadPhanCongChoNgay(ngay) {
+        leaveShift.innerHTML = ``;
 
+        fetch(baseUrl + `/api/phan-cong/${ngay}`)
+            .then(res => res.json())
+            .then(data => {
+
+                if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+
+                    // 🔥 Sắp xếp thứ tự Ca
+                    const CA_ORDER = {
+                        "Ca sáng": 1,
+                        "Ca chiều": 2,
+                        "Ca tối": 3
+                    };
+
+                    data.data.sort((a, b) => {
+                        return (CA_ORDER[a.ca] || 99) - (CA_ORDER[b.ca] || 99);
+                    });
+
+                    // Render option sau khi sort
+                    data.data.forEach(pc => {
+                        const option = document.createElement('option');
+                        const configCa = CA_CONFIG[pc.ca] || {};
+                        option.value = pc.id;
+
+                        option.textContent = `${pc.ca} (${configCa.gioVaoChuan || ''} - ${configCa.gioRaChuan || ''})`;
+
+                        leaveShift.appendChild(option);
+                    });
+
+                } else {
+                    leaveShift.innerHTML = `<option value="">-- Không có ca làm việc --</option>`;
+                }
+
+            })
+            .catch(err => {
+                console.error("Lỗi khi tải phân công:", err);
+                leaveShift.innerHTML = `<option value="">-- Lỗi tải ca làm việc --</option>`;
+            });
+    }
+
+    loadPhanCongChoNgay(tomorrow.toISOString().split('T')[0]);
     // --- Tab switching ---
     const tabs = document.querySelectorAll('.tab-btn');
     const contents = document.querySelectorAll('.tab-content');
@@ -131,7 +228,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Nghỉ làm ---
     const sendBtn = document.getElementById('send-request');
-    const leaveShift = document.getElementById('leave-shift');
     const leaveReason = document.getElementById('leave-reason');
     const leaveRequests = document.getElementById('leave-requests');
 

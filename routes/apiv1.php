@@ -159,6 +159,7 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     $r->addRoute('POST', '/phan-cong', [Ctrl_PhanCong::class, 'phanCong1NhanVien', ['Quản lý rạp']]);
     $r->addRoute('DELETE', '/phan-cong/{id:\d+}', [Ctrl_PhanCong::class, 'xoa1PhanCong', ['Quản lý rạp']]);
     $r->addRoute('GET', '/phan-cong', [Ctrl_PhanCong::class, 'docPhanCong', ['Quản lý rạp']]);
+     $r->addRoute('GET', '/phan-cong/{ngay}', [Ctrl_PhanCong::class, 'docPhanCongTheoNgay', ['Nhân viên']]);
     $r->addRoute('GET', '/phan-cong-theo-nv', [Ctrl_PhanCong::class, 'docPhanCongTheoNV', ['Nhân viên']]);
     $r->addRoute('GET', '/lich-lam-viec', [Ctrl_PhanCong::class, 'docLichLamViec', ['Nhân viên']]);
     $r->addRoute('GET', '/doc-cham-cong', [Ctrl_PhanCong::class, 'docChamCong', ['Nhân viên']]);

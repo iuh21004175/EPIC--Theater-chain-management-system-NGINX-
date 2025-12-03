@@ -106,35 +106,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // 3️⃣ XỬ LÝ CHẤM CÔNG + LƯƠNG
             json.data.forEach(item => {
-                const ngay = new Date(item.ngay).getDate();
-                const ca = item.ca || '-';
-                const gioVao = item.gio_vao ? new Date(item.gio_vao) : null;
-                const gioRa = item.gio_ra ? new Date(item.gio_ra) : null;
+            const ca = item.ca || '-';
+            const heSo = item.he_so ?? heSoMacDinh;
 
-                let soGio = 0;
-                if (gioVao && gioRa) {
-                    soGio = Math.max(0, (gioRa - gioVao) / (1000 * 60 * 60));
-                }
+            // Kết hợp ngày + thời gian để tạo Date object
+            let gioVao = null, gioRa = null;
+            if (item.gio_vao) {
+                gioVao = new Date(`${item.ngay}T${item.gio_vao}`);
+            }
+            if (item.gio_ra) {
+                gioRa = new Date(`${item.ngay}T${item.gio_ra}`);
+            }
 
-                const heSo = item.he_so ?? heSoMacDinh;
-                const tienLuong = Math.round(soGio * luongMotGio * heSo);
-                total += tienLuong;
+            // Tính số giờ làm việc
+            let soGio = 0;
+            if (gioVao && gioRa) {
+                soGio = Math.max(0, (gioRa - gioVao) / (1000 * 60 * 60));
+            }
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="p-2 border">${ngay}</td>
-                    <td class="p-2 border">${ca}</td>
-                    <td class="p-2 border">
-                        ${soGio.toFixed(2)} 
-                        (${gioVao ? gioVao.toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '-'} 
-                        - 
-                        ${gioRa ? gioRa.toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '-'})
-                    </td>
-                    <td class="p-2 border">${heSo}</td>
-                    <td class="p-2 border text-green-700 font-semibold">${tienLuong.toLocaleString('vi-VN')} đ</td>
-                `;
-                salaryBody.appendChild(tr);
-            });
+            // Tính tiền lương
+            const tienLuong = Math.round(soGio * luongMotGio * heSo);
+            total += tienLuong;
+
+            // Lấy ngày hiển thị
+            const ngayHienThi = new Date(item.ngay).getDate();
+
+            // Tạo row bảng
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="p-2 border">${ngayHienThi}</td>
+                <td class="p-2 border">${ca}</td>
+                <td class="p-2 border">
+                    ${soGio.toFixed(2)} 
+                    (${gioVao ? gioVao.toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '-'} 
+                    - 
+                    ${gioRa ? gioRa.toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '-'})
+                </td>
+                <td class="p-2 border">${heSo}</td>
+                <td class="p-2 border text-green-700 font-semibold">${tienLuong.toLocaleString('vi-VN')} đ</td>
+            `;
+            salaryBody.appendChild(tr);
+        });
+
 
             // 4️⃣ HIỂN THỊ THƯỞNG & TỔNG
             totalBonusEl.innerText = totalBonus.toLocaleString('vi-VN') + ' đ';

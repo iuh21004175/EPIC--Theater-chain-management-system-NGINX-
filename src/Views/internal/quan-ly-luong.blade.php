@@ -144,74 +144,82 @@ document.addEventListener("DOMContentLoaded", () => {
         const chamCongMap = {};
 
         chamCongList.forEach(item => {
-        const idNV = item.nhan_vien?.id;
-        if (!idNV) return;
+            const idNV = item.nhan_vien?.id;
+            if (!idNV) return;
 
-        if (!chamCongMap[idNV]) {
-            chamCongMap[idNV] = {
-            so_cong: 0,
-            gio_cong: 0,
-            tong_luong: 0,
-            chamsoc: []
-            };
-        }
+            if (!chamCongMap[idNV]) {
+                chamCongMap[idNV] = {
+                    so_cong: 0,
+                    gio_cong: 0,
+                    tong_luong: 0,
+                    chamsoc: []
+                };
+            }
 
-        const gioVao = new Date(item.gio_vao);
-        const gioRa = new Date(item.gio_ra);
+            // Kiểm tra gio_vao và gio_ra khác null
+            if (!item.gio_vao || !item.gio_ra) return;
 
-        // Tính số giờ làm, làm tròn 2 chữ số
-        let soGio = Math.max(0, (gioRa - gioVao) / (1000 * 60 * 60));
-        soGio = parseFloat(soGio.toFixed(2)); // làm tròn 2 chữ số
+            // Tạo Date object hợp lệ từ "YYYY-MM-DD" + "HH:mm:ss"
+            const gioVao = new Date(`${item.ngay}T${item.gio_vao}`);
+            const gioRa = new Date(`${item.ngay}T${item.gio_ra}`);
 
-        const heSo = Number(item.he_so ?? 1);
-        const luongGio = 30000; // tiền mỗi giờ
+            if (isNaN(gioVao.getTime()) || isNaN(gioRa.getTime())) return; // tránh Invalid Date
 
-        chamCongMap[idNV].so_cong += 1;
-        chamCongMap[idNV].gio_cong += soGio;
-        chamCongMap[idNV].tong_luong += soGio * luongGio * heSo;
-        chamCongMap[idNV].chamsoc.push(item);
+            // Tính số giờ làm, làm tròn 2 chữ số
+            let soGio = Math.max(0, (gioRa - gioVao) / (1000 * 60 * 60));
+            soGio = parseFloat(soGio.toFixed(2));
+
+            const heSo = Number(item.he_so ?? 1);
+            const luongGio = 30000; // tiền mỗi giờ
+
+            chamCongMap[idNV].so_cong += 1;
+            chamCongMap[idNV].gio_cong += soGio;
+            chamCongMap[idNV].tong_luong += soGio * luongGio * heSo;
+            chamCongMap[idNV].chamsoc.push(item);
         });
 
         // Hợp nhất danh sách nhân viên + chấm công
         currentData = nhanVienList.map(nv => {
-        const cham = chamCongMap[nv.id] || { so_cong: 0, gio_cong: 0, tong_luong: 0, chamsoc: [] };
+            const cham = chamCongMap[nv.id] || { so_cong: 0, gio_cong: 0, tong_luong: 0, chamsoc: [] };
 
-        // Làm tròn 2 chữ số cho giờ và lương
-        const gioCong = parseFloat(cham.gio_cong.toFixed(2));
-        const tongLuong = parseFloat(cham.tong_luong.toFixed(2));
+            // Làm tròn 2 chữ số cho giờ và lương
+            const gioCong = parseFloat(cham.gio_cong.toFixed(2));
+            const tongLuong = parseFloat(cham.tong_luong.toFixed(2));
 
-        return {
-            id: nv.id,
-            ten: nv.ten,
-            thang,
-            so_cong: cham.so_cong,
-            gio_cong: gioCong,
-            tong_luong: tongLuong,
-            thuong: 0,
-            trang_thai: 0,
-            chamsoc: cham.chamsoc
-        };
+            return {
+                id: nv.id,
+                ten: nv.ten,
+                thang,
+                so_cong: cham.so_cong,
+                gio_cong: gioCong,
+                tong_luong: tongLuong,
+                thuong: 0,
+                trang_thai: 0,
+                chamsoc: cham.chamsoc
+            };
         });
+
         // Gọi API thưởng và gán vào currentData
         for (let nv of currentData) {
-          try {
-            const resThuong = await fetch(`${baseUrl}/api/lay-thuong/${nv.id}?thang=${thang}`);
-            const jsonThuong = await resThuong.json();
+            try {
+                const resThuong = await fetch(`${baseUrl}/api/lay-thuong/${nv.id}?thang=${thang}`);
+                const jsonThuong = await resThuong.json();
 
-            if (jsonThuong.success && jsonThuong.data.length > 0) {
-              // Lọc thưởng theo tháng hiện tại
-              const thuongThang = jsonThuong.data.find(t => t.thang === nv.thang);
-              nv.thuong = thuongThang ? thuongThang.thuong : 0;
-              nv.trang_thai = thuongThang ? thuongThang.trang_thai : 0;
-            } else {
-              nv.thuong = 0;
-              nv.trang_thai = 0;
+                if (jsonThuong.success && jsonThuong.data.length > 0) {
+                    // Lọc thưởng theo tháng hiện tại
+                    const thuongThang = jsonThuong.data.find(t => t.thang === nv.thang);
+                    nv.thuong = thuongThang ? thuongThang.thuong : 0;
+                    nv.trang_thai = thuongThang ? thuongThang.trang_thai : 0;
+                } else {
+                    nv.thuong = 0;
+                    nv.trang_thai = 0;
+                }
+            } catch (e) {
+                nv.thuong = 0;
             }
-          } catch (e) {
-            nv.thuong = 0;
-          }
         }
-        //  Sắp xếp lương cao → thấp
+
+        // Sắp xếp lương cao → thấp
         currentData.sort((a, b) => (b.tong_luong + b.thuong) - (a.tong_luong + a.thuong));
 
         renderTable();
@@ -219,7 +227,8 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Lỗi khi tải dữ liệu:", error);
         salaryTable.innerHTML = `<tr><td colspan="10" class="p-4 text-red-500">❌ Không thể kết nối API (${error.message})</td></tr>`;
     }
-    }
+}
+
 
   function renderTable() {
     salaryTable.innerHTML = '';
@@ -348,7 +357,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   cancelBonus.addEventListener('click', () => bonusModal.classList.add('hidden'));
 
-  async function openDetail(id, name, thang) {
+async function openDetail(id, name, thang) {
     detailTitle.textContent = `Chấm công chi tiết - ${name} (${thang})`;
 
     try {
@@ -356,18 +365,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const json = await res.json();
 
         if (!json.success || !Array.isArray(json.data)) {
-        attendanceBody.innerHTML = `<tr><td colspan="5" class="p-4 text-red-500">Không có dữ liệu chấm công.</td></tr>`;
-        detailModal.classList.remove('hidden');
-        return;
+            attendanceBody.innerHTML = `<tr><td colspan="5" class="p-4 text-red-500">Không có dữ liệu chấm công.</td></tr>`;
+            detailModal.classList.remove('hidden');
+            return;
         }
 
         // Lọc ra những bản ghi thuộc nhân viên đang xem
         const records = json.data.filter(item => item.nhan_vien?.id == id);
 
         if (!records.length) {
-        attendanceBody.innerHTML = `<tr><td colspan="5" class="p-4 text-gray-500 italic">Không có chấm công trong tháng này.</td></tr>`;
-        detailModal.classList.remove('hidden');
-        return;
+            attendanceBody.innerHTML = `<tr><td colspan="5" class="p-4 text-gray-500 italic">Không có chấm công trong tháng này.</td></tr>`;
+            detailModal.classList.remove('hidden');
+            return;
         }
 
         // Lấy trạng thái duyệt từ bảng lương hiện tại (nếu có)
@@ -375,22 +384,35 @@ document.addEventListener("DOMContentLoaded", () => {
         detailLocked = nv?.trang_thai === 1;
 
         currentAttendance = records.map(item => {
-        const gioVao = new Date(item.gio_vao);
-        const gioRa = new Date(item.gio_ra);
-        const soGio = calcHours(
-            gioVao.toTimeString().slice(0, 5),
-            gioRa.toTimeString().slice(0, 5)
-        );
-        return {
-            id_ca: item.id,
-            ngay: item.ngay,
-            vao: gioVao.toTimeString().slice(0, 5),
-            ra: gioRa.toTimeString().slice(0, 5),
-            so_gio: soGio,
-            he_so: item.he_so ?? 1,
-            ghi_chu: item.cong_viec?.ten ?? ''
-        };
-        });
+            // Kiểm tra gio_vao và gio_ra khác null
+            if (!item.gio_vao || !item.gio_ra) return null;
+
+            // Kết hợp ngày + giờ để tạo Date object hợp lệ
+            const gioVao = new Date(`${item.ngay}T${item.gio_vao}`);
+            const gioRa = new Date(`${item.ngay}T${item.gio_ra}`);
+
+            if (isNaN(gioVao.getTime()) || isNaN(gioRa.getTime())) return null;
+
+            // Tính số giờ làm việc
+            const soGio = calcHours(
+                gioVao.toTimeString().slice(0, 5),
+                gioRa.toTimeString().slice(0, 5)
+            );
+
+            // Format giờ hiển thị HH:mm
+            const vaoHHMM = gioVao.toTimeString().slice(0, 5);
+            const raHHMM = gioRa.toTimeString().slice(0, 5);
+
+            return {
+                id_ca: item.id,
+                ngay: item.ngay,
+                vao: vaoHHMM,
+                ra: raHHMM,
+                so_gio: soGio,
+                he_so: item.he_so ?? 1,
+                ghi_chu: item.cong_viec?.ten ?? ''
+            };
+        }).filter(x => x !== null); // lọc bỏ các bản ghi null
 
         renderAttendanceTable();
         detailModal.classList.remove('hidden');
@@ -399,7 +421,8 @@ document.addEventListener("DOMContentLoaded", () => {
         attendanceBody.innerHTML = `<tr><td colspan="5" class="p-4 text-red-500">❌ Không thể tải dữ liệu (${error.message})</td></tr>`;
         detailModal.classList.remove('hidden');
     }
-    }
+}
+
 
     // Hiển thị bảng chi tiết chấm công trong modal
     function renderAttendanceTable() {

@@ -74,7 +74,22 @@
                 ->get();
             return $phanCong;
         }
-
+        public function docPhanCongTheoNgay($ngay){
+            $idNhanVien = $_SESSION['UserInternal']['ID'];
+            if($idNhanVien == null){
+                throw new \Exception("Nhân viên không tồn tại.");
+            }
+            if (!$ngay) {
+                throw new \Exception("Ngày không được để trống.");
+            }
+            $phanCong = PhanCong::with(['nhanVien', 'congViec'])
+                ->where('id_nhanvien', $idNhanVien)
+                ->where('ngay', $ngay)
+                ->where('trang_thai', '==', 0)
+                ->orderBy('ca', 'asc')
+                ->get();
+            return $phanCong;
+        }
         public function docPhanCongTheoNV($batdau, $ketthuc)
         {
             $phanCong = PhanCong::with(['nhanVien', 'congViec'])

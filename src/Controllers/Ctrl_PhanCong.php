@@ -106,7 +106,19 @@
                 ];
             }
         }
-
+        public function docPhanCongTheoNgay($argc) {
+            $ngay = $argc['ngay'] ?? null;
+            try {
+                $sc_PhanCong = new Sc_PhanCong();
+                $phanCong = $sc_PhanCong->docPhanCongTheoNgay($ngay);
+                return ['success' => true, 'data' => $phanCong];
+            } catch (\Exception $e) {
+                return [
+                    'success' => false,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
         public function docLichLamViec()
         {
             $service = new Sc_PhanCong();
