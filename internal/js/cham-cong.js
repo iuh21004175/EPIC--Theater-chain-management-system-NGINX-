@@ -9,24 +9,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     const cameraSection = document.getElementById('cameraSection');
     const statusContent = document.getElementById('statusContent');
 
-    // new UI controls (insert if not present)
-    let cameraSelect = document.getElementById('cameraSelect');
-    let btnSelectCamera = document.getElementById('btnSelectCamera');
+    // UI controls (already in HTML)
+    const cameraSelect = document.getElementById('cameraSelect');
+    const btnSelectCamera = document.getElementById('btnSelectCamera');
     const btnCheckin = document.getElementById('btnCheckin');
     const btnCheckout = document.getElementById('btnCheckout');
-    if (!cameraSelect) {
-        const wrap = document.createElement('div');
-        wrap.className = 'p-3 flex items-end justify-between space-x-3 bg-gray-50';
-        wrap.innerHTML = `
-            <div class="flex-1">
-                <label for="cameraSelect" class="block text-xs text-gray-600">Chọn camera</label>
-                <select id="cameraSelect" class="mt-1 w-full border  rounded px-2 py-1 text-sm"><option value="">Tự động</option></select>
-            </div>
-            <div><button id="btnSelectCamera" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Sử dụng</button></div>`;
-        cameraSection.insertBefore(wrap, cameraSection.firstChild);
-        cameraSelect = document.getElementById('cameraSelect');
-        btnSelectCamera = document.getElementById('btnSelectCamera');
-    }
+    
     // Helper: toggle small inline spinner inside a button
     function setBtnLoading(btn, loading, label) {
         if (!btn) return;
@@ -60,6 +48,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // Global variable to store shift history (lịch sử chấm công)
     let shiftHistory = [];
+    
+    // Pagination variables
+    let currentPage = 1;
+    const recordsPerPage = 10;
+    let totalPages = 1;
 
     // Standard shift definitions (giờ chuẩn cho từng ca)
     const CA_CONFIG = {
@@ -242,6 +235,15 @@ document.addEventListener("DOMContentLoaded", async function () {
                 // Find current shift (ca hiện tại) based on current time
                 const currentShift = getCurrentShift();
                 
+                // Check if shift is approved for leave (trang_thai == 2)
+                if (currentShift && currentShift.trang_thai == 2) {
+                    loadingModal.classList.add('hidden');
+                    alert('Ca làm việc này đã được duyệt nghỉ. Không thể chấm công.');
+                    setBtnLoading(btnCheckin, false);
+                    setBtnLoading(btnCheckout, false);
+                    return;
+                }
+                
                 const formData = new FormData();
                 formData.append('video', blob, `face_record_${Date.now()}.webm`);
                 formData.append('loai', action);
@@ -360,10 +362,42 @@ document.addEventListener("DOMContentLoaded", async function () {
         const ok = captureFrameToCanvas();
         if (!ok) { requestAnimationFrame(detectLoop); return; }
 
+        const ctx = canvas.getContext('2d');
+        
         try {
             // pass video element and timestamp (as in registration file)
             const results = await detector.detectForVideo(video, performance.now());
             const detections = results?.detections || [];
+            
+            // Draw bounding boxes for all detected faces
+            if (detections.length > 0) {
+                detections.forEach((detection, index) => {
+                    const bbox = detection.boundingBox;
+                    if (bbox) {
+                        // Calculate bounding box coordinates scaled to canvas size
+                        const x = bbox.originX;
+                        const y = bbox.originY;
+                        const w = bbox.width;
+                        const h = bbox.height;
+                        
+                        // Draw rectangle around face
+                        ctx.strokeStyle = detections.length === 1 ? '#00ff00' : '#ff0000'; // Green for 1 face, red for multiple
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(x, y, w, h);
+                        
+                        // Draw label
+                        const label = detections.length === 1 ? 'Khuôn mặt' : `Khuôn mặt ${index + 1}`;
+                        ctx.fillStyle = detections.length === 1 ? '#00ff00' : '#ff0000';
+                        ctx.font = '16px Arial';
+                        ctx.fillText(label, x, y - 5);
+                        
+                        // Draw confidence score
+                        const confidence = (detection.categories[0]?.score * 100).toFixed(1);
+                        ctx.fillText(`${confidence}%`, x, y + h + 20);
+                    }
+                });
+            }
+            
             if (detections.length === 1) {
                 // face present
                 const d = detections[0];
@@ -499,7 +533,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         try {
             const response = await fetch(`${API_URL}/cham-cong/lich-su`);
             const result = await response.json();
-            const tbody = document.getElementById('historyTableBody');
             
             // Save history to global variable
             if (result.success && result.data) {
@@ -507,40 +540,58 @@ document.addEventListener("DOMContentLoaded", async function () {
             } else {
                 shiftHistory = [];
             }
+            
+            // Render with pagination
+            renderHistoryPage();
+        } catch (err) {
+            console.error('Error loading history:', err);
+            document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Lỗi tải dữ liệu</td></tr>';
+        }
+    }
+    
+    function renderHistoryPage() {
+        const tbody = document.getElementById('historyTableBody');
+        const today = new Date().toISOString().slice(0, 10);
 
-            // Parse a datetime value returned by API.
-            // Accepts full ISO strings, timestamps, or time-only strings like "15:14:03".
-            function parseDateTime(value) {
-                if (!value && value !== 0) return null;
-                if (typeof value === 'number') {
-                    const d = new Date(value);
-                    return isNaN(d) ? null : d;
-                }
-                // If it's an ISO-like string (contains '-' or 'T'), use built-in parser
-                if (typeof value === 'string' && (value.indexOf('-') !== -1 || value.indexOf('T') !== -1)) {
-                    const d = new Date(value);
-                    return isNaN(d) ? null : d;
-                }
-                // Match HH:MM or HH:MM:SS
-                if (typeof value === 'string') {
-                    const m = value.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-                    if (m) {
-                        const now = new Date();
-                        const hh = parseInt(m[1], 10);
-                        const mm = parseInt(m[2], 10);
-                        const ss = m[3] ? parseInt(m[3], 10) : 0;
-                        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, ss);
-                        return d;
-                    }
-                    // Fallback to Date constructor
-                    const d2 = new Date(value);
-                    return isNaN(d2) ? null : d2;
-                }
-                return null;
+        // Parse a datetime value returned by API.
+        // Accepts full ISO strings, timestamps, or time-only strings like "15:14:03".
+        function parseDateTime(value) {
+            if (!value && value !== 0) return null;
+            if (typeof value === 'number') {
+                const d = new Date(value);
+                return isNaN(d) ? null : d;
             }
+            // If it's an ISO-like string (contains '-' or 'T'), use built-in parser
+            if (typeof value === 'string' && (value.indexOf('-') !== -1 || value.indexOf('T') !== -1)) {
+                const d = new Date(value);
+                return isNaN(d) ? null : d;
+            }
+            // Match HH:MM or HH:MM:SS
+            if (typeof value === 'string') {
+                const m = value.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+                if (m) {
+                    const now = new Date();
+                    const hh = parseInt(m[1], 10);
+                    const mm = parseInt(m[2], 10);
+                    const ss = m[3] ? parseInt(m[3], 10) : 0;
+                    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, ss);
+                    return d;
+                }
+                // Fallback to Date constructor
+                const d2 = new Date(value);
+                return isNaN(d2) ? null : d2;
+            }
+            return null;
+        }
 
-        if (result.success && result.data.length > 0) {
-            tbody.innerHTML = result.data.map(record => {
+        if (shiftHistory.length > 0) {
+            // Calculate pagination
+            totalPages = Math.ceil(shiftHistory.length / recordsPerPage);
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = Math.min(startIndex + recordsPerPage, shiftHistory.length);
+            const currentRecords = shiftHistory.slice(startIndex, endIndex);
+            
+            tbody.innerHTML = currentRecords.map(record => {
                 const ngayCham = record.ngay || record.ngay_cham;
                 const gioVao = parseDateTime(record.gio_vao);
                 const gioRa = parseDateTime(record.gio_ra);
@@ -641,11 +692,21 @@ document.addEventListener("DOMContentLoaded", async function () {
                 }
                 
                 const standardTime = configForCa ? `${configForCa.gioVaoChuan} - ${configForCa.gioRaChuan}` : '';
+                
+                // Check if this record is from today
+                const isToday = ngayCham && ngayCham.slice(0, 10) === today;
+                const rowClass = isToday ? 'bg-blue-50 border-l-4 border-l-blue-500' : '';
 
                 return `
-                    <tr>
+                    <tr class="${rowClass}">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${ngayCham ? new Date(ngayCham).toLocaleDateString('vi-VN') : '-'}
+                            <div class="flex items-center gap-2">
+                                ${isToday ? '<span class="flex h-2 w-2"><span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span></span>' : ''}
+                                <span class="${isToday ? 'font-bold text-blue-700' : ''}">
+                                    ${ngayCham ? new Date(ngayCham).toLocaleDateString('vi-VN') : '-'}
+                                    ${isToday ? '<span class="ml-1 text-xs text-blue-600">(Hôm nay)</span>' : ''}
+                                </span>
+                            </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div class="font-medium text-gray-900">${ca || '-'}</div>
@@ -668,13 +729,85 @@ document.addEventListener("DOMContentLoaded", async function () {
                     </tr>
                 `;
             }).join('');
+            
+            // Update pagination info
+            updatePaginationInfo(startIndex, endIndex, shiftHistory.length);
         } else {
-                document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Chưa có lịch sử chấm công</td></tr>';
-            }
-        } catch (err) {
-            console.error('Error loading history:', err);
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Chưa có lịch sử chấm công</td></tr>';
+            document.getElementById('paginationContainer').classList.add('hidden');
         }
     }
+    
+    function updatePaginationInfo(start, end, total) {
+        const container = document.getElementById('paginationContainer');
+        
+        if (total <= recordsPerPage) {
+            container.classList.add('hidden');
+            return;
+        }
+        
+        container.classList.remove('hidden');
+        
+        document.getElementById('pageRangeStart').textContent = start + 1;
+        document.getElementById('pageRangeEnd').textContent = end;
+        document.getElementById('totalRecords').textContent = total;
+        
+        // Update button states
+        const btnFirst = document.getElementById('btnFirstPage');
+        const btnPrev = document.getElementById('btnPrevPage');
+        const btnNext = document.getElementById('btnNextPage');
+        const btnLast = document.getElementById('btnLastPage');
+        
+        btnFirst.disabled = currentPage === 1;
+        btnPrev.disabled = currentPage === 1;
+        btnNext.disabled = currentPage === totalPages;
+        btnLast.disabled = currentPage === totalPages;
+        
+        // Render page numbers
+        renderPageNumbers();
+    }
+    
+    function renderPageNumbers() {
+        const container = document.getElementById('pageNumbers');
+        const maxVisible = 5;
+        let pages = [];
+        
+        if (totalPages <= maxVisible) {
+            // Show all pages
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            // Show subset with ellipsis
+            if (currentPage <= 3) {
+                pages = [1, 2, 3, 4, '...', totalPages];
+            } else if (currentPage >= totalPages - 2) {
+                pages = [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+            } else {
+                pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+            }
+        }
+        
+        container.innerHTML = pages.map(page => {
+            if (page === '...') {
+                return '<span class="px-3 py-2 text-sm text-gray-500">...</span>';
+            }
+            
+            const isActive = page === currentPage;
+            const btnClass = isActive 
+                ? 'px-3 py-2 text-sm font-bold text-white bg-indigo-600 border border-indigo-600 rounded-lg'
+                : 'px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all';
+            
+            return `<button class="${btnClass}" onclick="goToPage(${page})">${page}</button>`;
+        }).join('');
+    }
+    
+    // Make goToPage globally accessible
+    window.goToPage = function(page) {
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        renderHistoryPage();
+    };
 
     // Event handlers
     // New: arm the system to start recording when face appears
@@ -708,6 +841,18 @@ document.addEventListener("DOMContentLoaded", async function () {
     btnSelectCamera?.addEventListener('click', async (e) => {
         e.preventDefault();
         await startCameraWithDevice(cameraSelect.value);
+    });
+    
+    // Event listeners for pagination buttons
+    document.getElementById('btnFirstPage')?.addEventListener('click', () => goToPage(1));
+    document.getElementById('btnPrevPage')?.addEventListener('click', () => goToPage(currentPage - 1));
+    document.getElementById('btnNextPage')?.addEventListener('click', () => goToPage(currentPage + 1));
+    document.getElementById('btnLastPage')?.addEventListener('click', () => goToPage(totalPages));
+    
+    // Refresh button should reset to page 1
+    document.getElementById('btnRefresh')?.addEventListener('click', () => {
+        currentPage = 1;
+        loadHistory();
     });
 
     // init flow

@@ -90,14 +90,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setupCanvasSize() {
-    const DPR = window.devicePixelRatio || 1;
-    // set canvas physical pixels to match video resolution * DPR
-    overlay.width = Math.max(1, Math.round(video.videoWidth * DPR));
-    overlay.height = Math.max(1, Math.round(video.videoHeight * DPR));
+    // Match cham-cong.js approach: no DPR scaling for consistent coordinate system
+    overlay.width = TARGET_WIDTH;
+    overlay.height = TARGET_HEIGHT;
     overlay.style.width = '100%';
     overlay.style.height = '100%';
-    // normalize drawing to CSS pixels
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   }
 
   async function startCamera() {
@@ -172,10 +169,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function detectLoop() {
     if (!isCapturing) return;
 
+    // Clear and redraw video frame first
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
     ctx.drawImage(video, 0, 0, overlay.width, overlay.height);
+    
     const detections = await faceDetector.detectForVideo(video, performance.now());
-    
-    
+
+    if (detections && detections.detections.length > 0) {
+      // Draw bounding boxes for all detected faces (similar to cham-cong.js)
+      detections.detections.forEach((detection, index) => {
+        const bbox = detection.boundingBox;
+        if (bbox) {
+          const x = bbox.originX;
+          const y = bbox.originY;
+          const w = bbox.width;
+          const h = bbox.height;
+          
+          // Draw rectangle around face
+          ctx.strokeStyle = detections.detections.length === 1 ? '#00ff00' : '#ff0000'; // Green for 1 face, red for multiple
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x, y, w, h);
+          
+          // Draw label
+          const label = detections.detections.length === 1 ? 'Khuôn mặt' : `Khuôn mặt ${index + 1}`;
+          ctx.fillStyle = detections.detections.length === 1 ? '#00ff00' : '#ff0000';
+          ctx.font = '16px Arial';
+          ctx.fillText(label, x, y - 5);
+          
+          // Draw confidence score
+          const confidence = (detection.categories[0]?.score * 100).toFixed(1);
+          ctx.fillText(`${confidence}%`, x, y + h + 20);
+        }
+      });
+    }
 
     if (detections && detections.detections.length == 1) {
       pausedForNoFace = false;
@@ -184,31 +210,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const imageData = ctx.getImageData(0, 0, overlay.width, overlay.height);
       
       // No quality checks: keep detecting and drawing only
-
-      for (const det of detections.detections) {
-        const box = det.boundingBox;
-        // Tăng padding trên để lấy tóc, mở rộng hai bên nhỏ, hơi mở dưới
-        const padTop = 0.18;   // tăng nếu vẫn cắt tóc
-        const padSides = 0.12;
-        const padBottom = 0.35;
-
-        // Tính bounding box mở rộng (giới hạn trong canvas)
-        const exX = Math.max(0, Math.floor(box.originX - box.width * padSides));
-        const exY = Math.max(0, Math.floor(box.originY - box.height * padTop));
-        const exW = Math.min(overlay.width - exX, Math.ceil(box.width * (1 + padSides * 2)));
-        const exH = Math.min(overlay.height - exY, Math.ceil(box.height * (1 + padTop + padBottom)));
-
-        // Vẽ khung mở rộng
-        ctx.clearRect(0, 0, overlay.width, overlay.height);
-        ctx.strokeStyle = "lime";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(exX, exY, exW, exH);
-
-        // (Tùy chọn) vẫn có thể vẽ hộp gốc mỏng để debug
-        // ctx.strokeStyle = 'rgba(0,255,0,0.6)'; ctx.lineWidth = 1;
-        // ctx.strokeRect(box.originX, box.originY, box.width, box.height);
-
-      }
     }
     else if(detections && detections.detections.length > 1){
       pausedForNoFace = true;

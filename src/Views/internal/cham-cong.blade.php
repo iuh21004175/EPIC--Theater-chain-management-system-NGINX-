@@ -112,6 +112,28 @@
                             <span class="text-xs sm:text-sm text-green-600 font-medium hidden sm:inline">Đang hoạt động</span>
                         </div>
                     </div>
+
+                    <!-- Camera Controls -->
+                    <div class="p-3 sm:p-4 lg:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl mb-4 sm:mb-6">
+                        <div class="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3">
+                            <div class="flex-1">
+                                <label for="cameraSelect" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        </svg>
+                                        <span>Chọn camera</span>
+                                    </div>
+                                </label>
+                                <select id="cameraSelect" class="w-full border-2 border-blue-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                                    <option value="">Tự động</option>
+                                </select>
+                            </div>
+                            <button id="btnSelectCamera" class="px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium transition-all duration-200 shadow-md text-xs sm:text-sm">
+                                Sử dụng
+                            </button>
+                        </div>
+                    </div>
                     
                     <!-- Video Container -->
                     <div class="relative mx-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800 shadow-2xl mb-4 sm:mb-6" 
@@ -224,6 +246,48 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- Pagination Controls -->
+                <div id="paginationContainer" class="hidden px-4 py-4 sm:px-6 sm:py-5 border-t border-gray-200 bg-gray-50">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <!-- Page Info -->
+                        <div class="text-sm text-gray-700">
+                            Hiển thị <span id="pageRangeStart" class="font-semibold">0</span> - <span id="pageRangeEnd" class="font-semibold">0</span> 
+                            trong tổng số <span id="totalRecords" class="font-semibold">0</span> bản ghi
+                        </div>
+                        
+                        <!-- Pagination Buttons -->
+                        <div class="flex items-center gap-2">
+                            <button id="btnFirstPage" 
+                                    class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                                </svg>
+                            </button>
+                            <button id="btnPrevPage" 
+                                    class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                            </button>
+                            
+                            <div id="pageNumbers" class="flex items-center gap-1"></div>
+                            
+                            <button id="btnNextPage" 
+                                    class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                            <button id="btnLastPage" 
+                                    class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
