@@ -35,7 +35,7 @@ graph TB
     end
     
     subgraph "APPLICATION LAYER"
-        G[PHP 8.1<br/>Laravel Backend]
+        G[PHP 8.1<br/>Custom Backend]
         H[Python 3.10<br/>AI Engine]
     end
     
