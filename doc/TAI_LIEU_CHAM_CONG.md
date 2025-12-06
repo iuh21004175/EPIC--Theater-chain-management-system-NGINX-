@@ -23,11 +23,10 @@
 
 ### 1.1. Mô tả chức năng
 
-Hệ thống chấm công bằng khuôn mặt là một giải pháp công nghệ cao cho phép nhân viên chấm công vào/ra bằng cách sử dụng nhận diện khuôn mặt kết hợp với xác thực vị trí GPS. Hệ thống đảm bảo tính chính xác, bảo mật và chống gian lận thông qua:
+Hệ thống chấm công bằng khuôn mặt là một giải pháp công nghệ cao cho phép nhân viên chấm công vào/ra bằng cách sử dụng nhận diện khuôn mặt kết hợp với xác thực vị trí WiFi Rạp. Hệ thống đảm bảo tính chính xác, bảo mật và chống gian lận thông qua:
 
 - **Nhận diện khuôn mặt**: Sử dụng AI/ML để xác thực danh tính nhân viên
-- **Xác thực vị trí**: Kiểm tra nhân viên có đang ở đúng vị trí rạp phim (bán kính 100m) thông qua việc kết nối với thiết bị GPS cố định tại rạp phim
-- **Xác thực GPS qua JWT**: Sử dụng JWT token để đảm bảo dữ liệu GPS được lấy từ thiết bị GPS cố định do quản lý rạp quản lý (không phải theo dõi vị trí nhân viên)
+- **Xác thực hạ tầng mạng**: Yêu cầu thiết bị của nhân viên phải kết nối đúng vào mạng WiFi được chỉ định của rạp phim. Hệ thống sẽ tự động chặn các lượt chấm công từ mạng 4G/5G cá nhân hoặc WiFi bên ngoài.
 
 ### 1.2. Các tính năng chính
 
