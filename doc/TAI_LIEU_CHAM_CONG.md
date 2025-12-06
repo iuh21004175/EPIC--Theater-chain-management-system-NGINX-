@@ -51,9 +51,8 @@ graph TB
     
     subgraph "AI/ML PROCESSING LAYER"
         H[Python 3.10 AI Engine]
-        H1[Quality Check Module<br/>Brightness/Sharpness/Noise]
-        H2[Anti-Spoofing Engine<br/>MiniFASNetV2]
-        H3[Face Recognition<br/>FaceNet InceptionResnetV1]
+        H1[Quality Check Module<br/>Brightness/Sharpness/Noise/Contrast]
+        H2[Face Recognition<br/>FaceNet InceptionResnetV1]
     end
     
     subgraph "DATA LAYER - Cơ sở dữ liệu"
@@ -76,8 +75,8 @@ graph TB
     E --> F --> G
     G --> G1 --> G2 --> G3
     G3 --> H
-    H --> H1 --> H2 --> H3
-    H3 --> J
+    H --> H1 --> H2
+    H2 --> J
     G --> I
     G --> K
     H --> L
@@ -113,7 +112,7 @@ graph LR
     
     subgraph "AI/ML Layer"
         PY[Python Scripts<br/>face.py]
-        ML[ML Models<br/>MiniFASNet/FaceNet]
+        ML[ML Models<br/>MTCNN/FaceNet]
     end
     
     subgraph "Data Access Layer"
@@ -190,7 +189,7 @@ graph LR
 | **Computer Vision** | OpenCV (cv2) | 4.8.x | Video processing |
 | **Deep Learning** | PyTorch | 2.1.x | Neural network inference |
 | **Face Recognition** | facenet-pytorch | 2.5.3 | MTCNN + InceptionResnetV1 |
-| **Anti-Spoofing** | MiniFASNetV2 | Custom | Liveness detection |
+| **Quality Analysis** | Custom algorithms | - | Brightness/Sharpness/Contrast checks |
 | **Vector DB** | ChromaDB | 0.4.x | Face embedding storage |
 | **Numeric Computing** | NumPy | 1.24.x | Array operations |
 
@@ -222,13 +221,14 @@ Pillow==10.1.0
    - **Similarity metric**: Cosine similarity
    - **Threshold**: 0.6 (adjustable)
 
-3. **MiniFASNetV2 (Anti-Spoofing)**
-   - **Model file**: `2.7_80x80_MiniFASNetV2.pth`
-   - **Input size**: 80x80 RGB
-   - **Scale factor**: 2.7 (crop around face)
-   - **Output**: 3 classes (Real/Fake/Unknown)
-   - **Liveness threshold**: 0.85
-   - **Variance threshold**: 0.002 (detect static images)
+3. **Quality Analysis (Custom Implementation)**
+   - **Metrics**: Brightness, Sharpness (Laplacian variance), Noise (std dev), Contrast (RMS)
+   - **Thresholds**:
+     - Brightness: 50-230
+     - Sharpness: >= 25
+     - Noise: <= 100
+     - Contrast: >= 10
+   - **Purpose**: Đảm bảo chất lượng video đủ tốt cho face recognition
 
 ### 2.4. Database Stack
 
@@ -440,7 +440,7 @@ sequenceDiagram
     Note over UI,CHROMA: Registration Flow
     UI->>PHP: POST /dang-ky-khuon-mat (video)
     PHP->>PY: exec face.py register
-    PY->>PY: Quality Check + Liveness
+    PY->>PY: Quality Check (Brightness/Sharpness/Noise/Contrast)
     PY->>PY: FaceNet Extract Embedding
     PY->>CHROMA: Save embedding (face_123)
     CHROMA-->>PY: Success
@@ -455,7 +455,7 @@ sequenceDiagram
     PHP->>PY: exec face.py check
     PY->>CHROMA: GET embedding (face_123)
     CHROMA-->>PY: [512 dims vector]
-    PY->>PY: Liveness + Quality Check
+    PY->>PY: Quality Check (Brightness/Sharpness/Noise/Contrast)
     PY->>PY: Extract + Compare Embeddings
     PY-->>PHP: ✓ Verification SUCCESSFUL
     PHP->>MYSQL: UPDATE phan_cong SET gio_vao
@@ -577,16 +577,19 @@ flowchart TD
     CHECK_DIST -->|Có| CALL_AI[Gọi Python AI Engine]
     
     CALL_AI --> QUALITY[Quality Check Module]
-    QUALITY --> QUALITY_OK{Chất lượng OK?}
-    QUALITY_OK -->|Không| ERROR6[❌ Video chất lượng thấp]
-    QUALITY_OK -->|Có| LIVENESS[Anti-Spoofing Check]
+    QUALITY --> BRIGHTNESS[Check Brightness<br/>50-230]
     
-    LIVENESS --> VARIANCE[Tính Score Variance]
-    VARIANCE --> VAR_CHECK{Variance >= 0.002?}
-    VAR_CHECK -->|Không| ERROR7[❌ Phát hiện ảnh giả<br/>Static image detected]
-    VAR_CHECK -->|Có| SCORE_CHECK{Mean Score >= 0.85?}
-    SCORE_CHECK -->|Không| ERROR8[❌ Liveness Failed]
-    SCORE_CHECK -->|Có| EXTRACT[Extract Face Embedding]
+    BRIGHTNESS --> BRIGHT_OK{OK?}
+    BRIGHT_OK -->|Không| ERROR6[❌ Độ sáng không phù hợp]
+    BRIGHT_OK -->|Có| SHARPNESS[Check Sharpness<br/>>= 25]
+    
+    SHARPNESS --> SHARP_OK{OK?}
+    SHARP_OK -->|Không| ERROR7[❌ Video mờ/không rõ nét]
+    SHARP_OK -->|Có| NOISE[Check Noise<br/><= 100]
+    
+    NOISE --> NOISE_OK{OK?}
+    NOISE_OK -->|Không| ERROR8[❌ Video nhiễu quá cao]
+    NOISE_OK -->|Có| EXTRACT[Extract Face Embedding]
     
     EXTRACT --> GET_STORED[ChromaDB: Get Stored Embedding]
     GET_STORED --> COMPARE[Cosine Similarity]
@@ -607,7 +610,10 @@ flowchart TD
     style ERROR7 fill:#e74c3c,color:#fff
     style ERROR8 fill:#e74c3c,color:#fff
     style ERROR9 fill:#e74c3c,color:#fff
-    style LIVENESS fill:#f39c12
+    style QUALITY fill:#f39c12
+    style BRIGHTNESS fill:#f39c12
+    style SHARPNESS fill:#f39c12
+    style NOISE fill:#f39c12
     style EXTRACT fill:#9b59b6
 ```
 
@@ -631,17 +637,6 @@ graph LR
         Q5[Contrast Check<br/>>= 10]
     end
     
-    subgraph "Anti-Spoofing Pipeline"
-        AS1[MTCNN Face Detection]
-        AS2[Scale Crop 2.7x]
-        AS3[Resize to 80x80]
-        AS4[Normalize /255.0]
-        AS5[MiniFASNet Inference]
-        AS6[Check 10 frames]
-        AS7[Calculate Variance]
-        AS8[Score >= 0.85?]
-    end
-    
     subgraph "Face Recognition"
         FR1[MTCNN Detect & Align]
         FR2[Resize to 160x160]
@@ -658,92 +653,112 @@ graph LR
     end
     
     VID --> Q1 --> Q2 --> Q3 --> Q4 --> Q5
-    Q5 --> AS1 --> AS2 --> AS3 --> AS4 --> AS5
-    AS5 --> AS6 --> AS7 --> AS8
-    AS8 --> FR1 --> FR2 --> FR3 --> FR4 --> FR5 --> FR6
+    Q5 --> FR1 --> FR2 --> FR3 --> FR4 --> FR5 --> FR6
     FR6 --> V1 --> V2 --> V3
     
     style VID fill:#3498db
-    style AS5 fill:#e74c3c
+    style Q5 fill:#f39c12
     style FR3 fill:#9b59b6
     style V2 fill:#27ae60
 ```
 
-### 6.2. MiniFASNet Architecture
-
-```mermaid
-graph TB
-    INPUT[Input: 80x80x3 RGB] --> CONV1[Conv2d_cd 3→32<br/>stride=2]
-    CONV1 --> CONV2[DepthwiseConv 32→32<br/>groups=32]
-    CONV2 --> CONV23[Conv2d_cd 32→64<br/>stride=2]
-    CONV23 --> CONV3[DepthwiseConv 64→64<br/>groups=64]
-    CONV3 --> CONV34[Conv2d_cd 64→128<br/>stride=2]
-    CONV34 --> CONV4[DepthwiseConv 128→128<br/>groups=128]
-    CONV4 --> CONV45[Conv2d_cd 128→128<br/>stride=2]
-    CONV45 --> CONV5[DepthwiseConv 128→128<br/>groups=128]
-    CONV5 --> CONV6_SEP[Conv2d 128→512<br/>1x1]
-    CONV6_SEP --> CONV6_DW[DepthwiseConv 512→512<br/>5x5, groups=512]
-    CONV6_DW --> FLATTEN[Flatten]
-    FLATTEN --> LINEAR1[Linear 512→128]
-    LINEAR1 --> BN[BatchNorm1d]
-    BN --> DROP[Dropout 0.4]
-    DROP --> LINEAR2[Linear 128→3]
-    LINEAR2 --> SOFT[Softmax]
-    SOFT --> OUTPUT[Output: [Fake, Real, Unknown]]
-    
-    style INPUT fill:#3498db,color:#fff
-    style OUTPUT fill:#27ae60,color:#fff
-    style CONV6_DW fill:#e74c3c,color:#fff
-```
-
-### 6.3. Anti-Spoofing Detection Logic
+### 6.2. Quality Analysis Implementation
 
 ```python
-# Pseudo-code logic
-def check_liveness_video(video_path):
-    all_scores = []
-    real_votes = 0
-    fake_votes = 0
+# Cấu trúc Quality Check từ face.py
+def analyze_quality(frame):
+    """
+    Tính các metric chất lượng ảnh:
+    - brightness: độ sáng trung bình
+    - sharpness: variance of Laplacian
+    - noise: độ lệch chuẩn
+    - contrast: RMS contrast (std)
+    """
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     
-    for frame in video.frames[:10]:
-        # MTCNN face detection
-        face_box = mtcnn.detect(frame)
+    brightness = np.mean(gray)
+    sharpness = cv2.Laplacian(gray, cv2.CV_64F).var()
+    noise = np.std(gray)
+    contrast = gray.std()
+    
+    return brightness, sharpness, noise, contrast
+
+def check_quality(video_path):
+    # Ngưỡng đánh giá
+    BRIGHTNESS_MIN = 50
+    BRIGHTNESS_MAX = 230
+    SHARPNESS_MIN = 25
+    NOISE_MAX = 100
+    CONTRAST_MIN = 10
+    
+    # Xử lý 10 frames và tính trung bình
+    # Kiểm tra đạt chuẩn
+    if (BRIGHTNESS_MIN <= avg_brightness <= BRIGHTNESS_MAX and
+            avg_sharpness >= SHARPNESS_MIN and
+            avg_noise <= NOISE_MAX and
+            avg_contrast >= CONTRAST_MIN):
+        return True
+    return False
+```
+
+### 6.3. Quality Check Logic
+
+```python
+# Code thực tế từ face.py
+def analyze_quality(frame):
+    """
+    Tính các metric chất lượng ảnh:
+    - brightness: độ sáng trung bình
+    - sharpness: variance of Laplacian
+    - noise: độ lệch chuẩn
+    - contrast: RMS contrast (std)
+    """
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    
+    brightness = np.mean(gray)
+    sharpness = cv2.Laplacian(gray, cv2.CV_64F).var()
+    noise = np.std(gray)
+    contrast = gray.std()
+    
+    return brightness, sharpness, noise, contrast
+
+def check_quality(video_path):
+    # Ngưỡng đánh giá
+    BRIGHTNESS_MIN = 50
+    BRIGHTNESS_MAX = 230
+    SHARPNESS_MIN = 25
+    NOISE_MAX = 100
+    CONTRAST_MIN = 10
+    
+    # Xử lý 10 frames và tính trung bình
+    cap = cv2.VideoCapture(video_path)
+    results = []
+    frame_count = 0
+    max_frames = 10
+    
+    while True:
+        ret, frame = cap.read()
+        if not ret or frame_count >= max_frames:
+            break
         
-        # Scale crop 2.7x
-        face_crop = crop_with_scale(frame, face_box, scale=2.7)
-        
-        # Preprocess
-        img = resize(face_crop, (80, 80))
-        img = normalize(img)  # /255.0
-        
-        # MiniFASNet inference
-        prediction = liveness_model(img)
-        real_score = prediction[1]  # Index 1 = Real class
-        all_scores.append(real_score)
-        
-        if real_score > THRESHOLD:
-            real_votes += 1
-        else:
-            fake_votes += 1
+        brightness, sharpness, noise, contrast = analyze_quality(frame)
+        results.append((brightness, sharpness, noise, contrast))
+        frame_count += 1
     
-    # Statistical analysis
-    variance = np.var(all_scores)
-    mean_score = np.mean(all_scores)
+    cap.release()
     
-    # 4-layer security checks
-    if variance < 0.002:
-        return False  # Static image detected
+    avg_brightness = np.mean([r[0] for r in results])
+    avg_sharpness = np.mean([r[1] for r in results])
+    avg_noise = np.mean([r[2] for r in results])
+    avg_contrast = np.mean([r[3] for r in results])
     
-    if len(set(all_scores)) == 1:
-        return False  # All scores identical
-    
-    if mean_score < 0.85:
-        return False  # Average too low
-    
-    if real_votes / len(all_scores) < 0.7:
-        return False  # Too many fake frames
-    
-    return True  # All checks passed
+    # Kiểm tra đạt chuẩn
+    if (BRIGHTNESS_MIN <= avg_brightness <= BRIGHTNESS_MAX and
+            avg_sharpness >= SHARPNESS_MIN and
+            avg_noise <= NOISE_MAX and
+            avg_contrast >= CONTRAST_MIN):
+        return True
+    return False
 ```
 
 ### 6.4. Face Recognition Workflow
@@ -1107,7 +1122,7 @@ cache/log/
 - MySQL connection pool usage
 - Failed authentication attempts
 - GPS distance violations
-- Anti-spoofing detection rate
+- Quality check pass rate
 
 -----
 
@@ -1144,11 +1159,7 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# 4. Download AI models
-mkdir -p bin/python/anti_spoof_models
-wget https://storage.url/MiniFASNetV2.pth -O bin/python/anti_spoof_models/2.7_80x80_MiniFASNetV2.pth
-
-# 5. Database setup
+# 4. Database setup
 php artisan migrate --force
 
 # 6. Start ChromaDB
@@ -1189,7 +1200,7 @@ Daily Backups:
 | AI xử lý quá chậm | - GPU không được sử dụng<br/>- Model chưa cache | - Cài PyTorch với CUDA<br/>- Warm-up model khi start |
 | ChromaDB connection refused | - Service chưa chạy<br/>- Port 8000 conflict | - `docker ps` kiểm tra container<br/>- Đổi port nếu conflict |
 | Face không khớp dù đúng người | - Threshold quá cao<br/>- Ánh sáng thay đổi nhiều | - Giảm threshold về 0.55<br/>- Đăng ký lại trong điều kiện tương tự |
-| Liveness luôn fail | - Model file corrupt<br/>- Preprocessing sai | - Download lại model<br/>- Kiểm tra normalize /255.0 |
+| Quality check luôn fail | - Ánh sáng quá tối/quá sáng<br/>- Camera mờ | - Cải thiện ánh sáng (50-230)<br/>- Lau lens camera<br/>- Giảm ngưỡng sharpness |
 
 -----
 
@@ -1201,13 +1212,13 @@ Daily Backups:
 - Xác thực mạng LAN (WiFi)
 - GPS định vị chống giả mạo
 - JWT token với HMAC-SHA256
-- AI anti-spoofing với 4 lớp kiểm tra
+- Quality analysis (brightness, sharpness, noise, contrast)
 - Face recognition với cosine similarity
 
 ✅ **Độ chính xác cao:**
 - FaceNet pretrained trên 3.31M images
 - Threshold tùy chỉnh (0.6 default)
-- Variance detection cho ảnh tĩnh
+- Multi-metric quality validation
 
 ✅ **Scalable Architecture:**
 - Load balancer hỗ trợ multiple web servers
