@@ -52,41 +52,41 @@ class Sc_ChamCong
         if (!$idNhanVien) {
             throw new Exception('Thiếu id nhân viên');
         }
-        
+
         $videoPath = $_FILES['video']['tmp_name'] ?? null;
         if (!$videoPath) {
             throw new Exception('Thiếu file video tải lên');
         }
-        
+
         $envPython = $_ENV['PYTHON_PATH'] ?? 'python3';
         $filePython = __DIR__ . '/../../bin/python/face.py';
         $fileLog = __DIR__ . '/../../cache/log/face_register.log';
-        
+
         $command = escapeshellcmd("$envPython $filePython $videoPath $idNhanVien register");
-        
+
         // Thực thi lệnh và chuyển hướng đầu ra lỗi vào file log
         exec("$command 2>> $fileLog", $output, $returnVar);
-        
+
         if ($returnVar != 0) {
             throw new Exception('Lỗi khi gọi Đăng ký khuôn mặt. Xem log để biết thêm chi tiết.');
         }
-        
+
         // Ghi log đầu ra từ Python
         file_put_contents($fileLog, implode("\n", $output) . "\n", FILE_APPEND);
-        
+
         // Phân tích kết quả trả về từ Python
         $result = implode("\n", $output);
-        
+
         // Kiểm tra kết quả đăng ký thành công
         if (strpos($result, 'Face registration SUCCESSFUL') === false) {
-            // Kiểm tra lỗi giả mạo khuôn mặt
-            if (strpos($result, 'Liveness check failed') !== false || strpos($result, 'Liveness FAILED') !== false || strpos($result, 'Spoofing detected') !== false) {
-                throw new Exception('⚠️ Phát hiện giả mạo khuôn mặt! Hệ thống nhận diện bạn đang sử dụng ảnh/video giả. Vui lòng sử dụng khuôn mặt thật để đăng ký.');
-            } else {
-                throw new Exception('Đăng ký khuôn mặt thất bại. Vui lòng kiểm tra chất lượng video và thử lại.');
-            }
+            throw new Exception('Đăng ký khuôn mặt thất bại. Vui lòng kiểm tra chất lượng video và thử lại.');
+
+
+
+
+
         }
-        
+
         $dangKyKhuonMat = DangKyKhuonMat::where('id_nhanvien', $idNhanVien)->first();
         if ($dangKyKhuonMat) {
             $dangKyKhuonMat->update([
@@ -102,37 +102,37 @@ class Sc_ChamCong
                 throw new Exception('Lỗi lưu thông tin đăng ký khuôn mặt');
             }
         }
-        
+
         return ['success' => true, 'message' => 'Đăng ký khuôn mặt thành công'];
     }
     public function decodeToken($token){
         // Tách token thành 3 phần: header.payload.signature
         $parts = explode('.', $token);
-        
+
         if (count($parts) !== 3) {
             return [
                 'error' => true,
                 'message' => 'Invalid token format'
             ];
         }
-        
+
         list($headerB64, $payloadB64, $signatureB64) = $parts;
-        
+
         // Giải mã header và payload
         $header = $this->base64UrlDecode($headerB64);
         $payload = $this->base64UrlDecode($payloadB64);
-        
+
         // Parse JSON
         $headerData = json_decode($header, true);
         $payloadData = json_decode($payload, true);
-        
+
         if (!$headerData || !$payloadData) {
             return [
                 'error' => true,
                 'message' => 'Invalid JSON in token'
             ];
         }
-        
+
         // Kiểm tra algorithm
         if (!isset($headerData['alg']) || $headerData['alg'] !== 'HS256') {
             return [
@@ -140,18 +140,18 @@ class Sc_ChamCong
                 'message' => 'Unsupported algorithm: ' . ($headerData['alg'] ?? 'none')
             ];
         }
-        
+
         // Xác thực chữ ký
         $signature = $this->base64UrlDecode($signatureB64);
         $expectedSignature = $this->sign($headerB64 . '.' . $payloadB64);
-        
+
         if (!hash_equals($signature, $expectedSignature)) {
             return [
                 'error' => true,
                 'message' => 'Invalid signature'
             ];
         }
-        
+
         // Kiểm tra thời gian hết hạn
         if (isset($payloadData['exp'])) {
             if (time() > $payloadData['exp']) {
@@ -162,7 +162,7 @@ class Sc_ChamCong
                 ];
             }
         }
-        
+
         // Kiểm tra thời gian bắt đầu có hiệu lực
         if (isset($payloadData['nbf'])) {
             if (time() + 2 < $payloadData['nbf']) {
@@ -173,7 +173,7 @@ class Sc_ChamCong
                 ];
             }
         }
-        
+
         // Trả về payload đã được xác thực
         return [
             'error' => false,
@@ -188,7 +188,7 @@ class Sc_ChamCong
     {
         return hash_hmac('sha256', $data, $_ENV['GPS_SECRET_KEY'], true);
     }
-    
+
     /**
      * Giải mã Base64 URL-safe
      */
@@ -212,11 +212,11 @@ class Sc_ChamCong
             // Trường hợp 2: Dữ liệu nằm trực tiếp trong payload
             $data = $payload;
         }
-        
+
         if (!$data) {
             return null;
         }
-        
+
         return [
             'status' => $data['status'] ?? 'unknown',
             'latitude' => floatval($data['latitude'] ?? 0),
@@ -234,12 +234,12 @@ class Sc_ChamCong
         if (!$idNhanVien) {
             throw new Exception('Thiếu id nhân viên');
         }
-        
+
         $loai = $_POST['loai'] ?? null;
         if (!$loai || !in_array($loai, ['checkin', 'checkout'])) {
             throw new Exception('Loại chấm công không hợp lệ. Chỉ chấp nhận "checkin" hoặc "checkout"');
         }
-        
+
         // Kiểm tra nhân viên đã đăng ký khuôn mặt chưa
         $dangKyKhuonMat = DangKyKhuonMat::where('id_nhanvien', $idNhanVien)
             ->where('trang_thai', 'Đang hoạt động')
@@ -271,7 +271,7 @@ class Sc_ChamCong
         // Khoản cách chấp nhận chấm công là 100m so với tọa độ rạp phim
         // Tính khoảng cách giữa tọa độ nhân viên và tọa độ rạp phim
         $khoangCach = $this->tinhKhoangCach($kinhDoNhanVien, $viDoNhanVien, $rapPhim->kinh_do, $rapPhim->vi_do);
-        
+
         // Ghi log khoảng cách
         $fileLog = __DIR__ . '/../../cache/log/face_checkin.log';
         if($loai == 'checkout'){
@@ -283,7 +283,7 @@ class Sc_ChamCong
         $logKhoangCach .= "Tọa độ rạp phim: Kinh độ={$rapPhim->kinh_do}, Vĩ độ={$rapPhim->vi_do}\n";
         $logKhoangCach .= str_repeat("-", 80) . "\n";
         file_put_contents($fileLog, $logKhoangCach, FILE_APPEND);
-        
+
         if ($khoangCach > 100) {
             throw new Exception('Kiểm tra kết nối wifi: '.$_POST['wifiTen'].'. Khoản cách không hợp lệ. Vui lòng liên hệ quản lý rạp để xử lý.');
         }
@@ -292,8 +292,8 @@ class Sc_ChamCong
         if (!$videoPath) {
             throw new Exception('Thiếu file video tải lên');
         }
-        
-        
+
+
         // 3. Gọi Python script để xác thực khuôn mặt
         $envPython = $_ENV['PYTHON_PATH'] ?? 'python3';
         $filePython = __DIR__ . '/../../bin/python/face.py';
@@ -301,31 +301,31 @@ class Sc_ChamCong
         if($loai == 'checkout'){
             $fileLog = __DIR__ . '/../../cache/log/face_checkout.log';
         }
-        
+
         $command = escapeshellcmd("$envPython $filePython $videoPath $idNhanVien check");
-        
+
         // Thực thi lệnh
         exec("$command 2>> $fileLog", $output, $returnVar);
-        
+
         // Ghi log đầu ra từ Python
         $logContent = date('Y-m-d H:i:s') . " - ID: $idNhanVien - Loại: $loai\n";
         $logContent .= implode("\n", $output) . "\n";
         $logContent .= str_repeat("-", 80) . "\n";
         file_put_contents($fileLog, $logContent, FILE_APPEND);
-        
+
         if ($returnVar != 0) {
             throw new Exception('Lỗi khi gọi xác thực khuôn mặt. Xem log để biết thêm chi tiết.');
         }
-        
+
         // 4. Phân tích kết quả từ Python
         $result = implode("\n", $output);
-        
+
         // Kiểm tra xác thực thành công
         if (strpos($result, 'Face verification SUCCESSFUL') === false) {
             // Lấy thông tin lỗi cụ thể
-            if (strpos($result, 'Liveness check failed') !== false || strpos($result, 'Liveness FAILED') !== false || strpos($result, 'Spoofing detected') !== false) {
-                throw new Exception('⚠️ Phát hiện giả mạo khuôn mặt! Hệ thống nhận diện bạn đang sử dụng ảnh/video giả. Vui lòng sử dụng khuôn mặt thật và thử lại.');
-            } elseif (strpos($result, 'low quality') !== false) {
+            if (strpos($result, 'low quality') !== false) {
+
+
                 throw new Exception('Chất lượng video không đạt yêu cầu. Vui lòng quay video ở nơi có ánh sáng tốt hơn.');
             } elseif (strpos($result, 'No match') !== false) {
                 throw new Exception('Khuôn mặt không khớp. Vui lòng thử lại hoặc liên hệ quản trị viên.');
@@ -335,11 +335,11 @@ class Sc_ChamCong
                 throw new Exception('Xác thực khuôn mặt thất bại. Vui lòng thử lại.');
             }
         }
-        
+
         // Trích xuất similarity score (tùy chọn - để log/debug)
         preg_match('/SIMILARITY SCORE: ([\d.]+)/', $result, $matches);
         $similarityScore = $matches[1] ?? 'N/A';
-        
+
         // 5. Lưu vào bảng chấm công
         $ngayHienTai = date('Y-m-d');
         $gioHienTai = date('Y-m-d H:i:s');
@@ -350,7 +350,7 @@ class Sc_ChamCong
             ->where('ngay', $ngayHienTai)
             ->where('id', $_POST['id_phancong'])
             ->first();
-        
+
         if ($daChamCong) {
             // Đã có bản ghi - update
             if ($loai == 'checkin') {
@@ -377,10 +377,10 @@ class Sc_ChamCong
         } else {
             throw new Exception('Nhận diện khuôn mặt thành công nhưng không tìm thấy bản ghi phân công hiện tại.');
         }
-        
+
         // 6. Lấy thông tin nhân viên để trả về (optional)
         $nhanVien = NguoiDungInternal::find($idNhanVien);
-        
+
         // 7. Trả về kết quả thành công
         return [
             'success' => true,
@@ -406,36 +406,36 @@ class Sc_ChamCong
     private function tinhKhoangCach($kinhDoNhanVien, $viDoNhanVien, $kinhDoRapPhim, $viDoRapPhim)
     {
         // Lấy tọa độ rạp phim từ biến môi trường hoặc config
-        
+
         if (!$kinhDoRapPhim || !$viDoRapPhim) {
             throw new Exception('Chưa cấu hình tọa độ rạp phim. Vui lòng liên hệ quản trị viên.');
         }
-        
+
         // Chuyển đổi sang float để đảm bảo tính toán chính xác
         $kinhDoNhanVien = (float) $kinhDoNhanVien;
         $viDoNhanVien = (float) $viDoNhanVien;
         $kinhDoRapPhim = (float) $kinhDoRapPhim;
         $viDoRapPhim = (float) $viDoRapPhim;
-        
+
         // Bán kính Trái Đất tính bằng mét
         $banKinhTraiDat = 6371000; // 6371 km = 6371000 mét
-        
+
         // Chuyển đổi độ sang radian
         $lat1Rad = deg2rad($viDoNhanVien);
         $lat2Rad = deg2rad($viDoRapPhim);
         $deltaLatRad = deg2rad($viDoRapPhim - $viDoNhanVien);
         $deltaLonRad = deg2rad($kinhDoRapPhim - $kinhDoNhanVien);
-        
+
         // Công thức Haversine
         $a = sin($deltaLatRad / 2) * sin($deltaLatRad / 2) +
              cos($lat1Rad) * cos($lat2Rad) *
              sin($deltaLonRad / 2) * sin($deltaLonRad / 2);
-        
+
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        
+
         // Khoảng cách tính bằng mét
         $khoangCach = $banKinhTraiDat * $c;
-        
+
         return $khoangCach;
     }
 
