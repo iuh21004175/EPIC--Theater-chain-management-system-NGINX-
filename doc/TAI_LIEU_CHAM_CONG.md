@@ -211,7 +211,7 @@ graph TB
         W[Log Files]
     end
     
-    A -->|Video + GPS Token| G
+    A -->|Video + Token| G
     B -->|Face Detection| C
     C -->|Video Stream| D
     D -->|Recorded Video| A
