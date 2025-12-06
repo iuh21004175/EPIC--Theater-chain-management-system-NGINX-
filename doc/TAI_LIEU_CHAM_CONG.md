@@ -61,11 +61,6 @@ graph TB
         K[Redis Cache<br/>Session & Realtime]
     end
     
-    subgraph "STORAGE LAYER"
-        L[AWS S3/MinIO<br/>Video Storage]
-        M[Local Filesystem<br/>Logs & Temp Files]
-    end
-    
     A --> A1 --> A2
     B --> B1 --> B2
     A2 --> C
@@ -79,8 +74,6 @@ graph TB
     H2 --> J
     G --> I
     G --> K
-    H --> L
-    H --> M
     
     style A fill:#e1f5ff
     style B fill:#e1f5ff
@@ -256,11 +249,6 @@ graph TB
         REDIS[(Redis<br/>:6379)]
     end
     
-    subgraph "Storage Tier"
-        S3[MinIO S3<br/>Video Storage]
-        NFS[NFS Share<br/>Logs & Temp]
-    end
-    
     LB --> WEB1
     LB --> WEB2
     WEB1 --> DB
@@ -272,8 +260,6 @@ graph TB
     AI --> CHROMA
     WEB1 --> REDIS
     WEB2 --> REDIS
-    AI --> S3
-    AI --> NFS
     
     style LB fill:#3498db
     style AI fill:#e74c3c
@@ -829,11 +815,6 @@ graph TB
         REDIS_CACHE[(Redis<br/>10.0.2.30:6379)]
     end
     
-    subgraph "Storage Tier - 10.0.3.0/24"
-        MINIO[MinIO S3<br/>10.0.3.10:9000]
-        NFS_SHARE[NFS Server<br/>10.0.3.20]
-    end
-    
     CLIENT -->|HTTPS| FW
     FW --> NGINX
     NGINX --> WEB1
@@ -850,8 +831,6 @@ graph TB
     WEB2 --> AI_SERVER
     
     AI_SERVER --> CHROMA_DB
-    AI_SERVER --> MINIO
-    AI_SERVER --> NFS_SHARE
     
     WEB1 --> REDIS_CACHE
     WEB2 --> REDIS_CACHE
@@ -1184,12 +1163,6 @@ Daily Backups:
     Type: Collection export
     Schedule: 2:30 AM daily
     Retention: 30 days
-    Storage: S3/MinIO
-    
-  Application Logs:
-    Type: Compressed archive
-    Schedule: Daily rotation
-    Retention: 90 days
 ```
 
 ### 9.3. Troubleshooting Guide
