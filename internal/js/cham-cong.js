@@ -321,7 +321,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             if (error.name === 'AbortError') {
                 throw new Error(`Vui lòng kết nối tới wifi ${wifiTen}. Kiểm tra kết nối mạng và thử lại.`);
             } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                throw new Error(`Không thể kết nối tới Server GPS.\nVui lòng đảm bảo:\n- Bạn đã kết nối đúng wifi\n- Router đang hoạt động bình thường\n- Liên hệ quản lý rạp nếu vấn đề vẫn tiếp tục.`);
+                throw new Error(`Không thể kết nối tới Server Local.\nVui lòng đảm bảo:\n- Bạn đã kết nối đúng wifi\n- Router đang hoạt động bình thường\n- Liên hệ quản lý rạp nếu vấn đề vẫn tiếp tục.`);
             } else {
                 throw new Error(`Lỗi hệ thống: ${error.message}`);
             }

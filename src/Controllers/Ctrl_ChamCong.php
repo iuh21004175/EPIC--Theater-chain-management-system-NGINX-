@@ -41,7 +41,7 @@ class Ctrl_ChamCong
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Lỗi hệ thống: ' . $e->getMessage()
+                'message' => $e->getMessage()
             ];
         }
     }
@@ -92,7 +92,7 @@ class Ctrl_ChamCong
         catch(\Exception $e){
             return [
                 'success' => false,
-                'message' => 'Lỗi hệ thống: ' . $e->getMessage()
+                'message' =>  $e->getMessage()
             ];
         }
     }

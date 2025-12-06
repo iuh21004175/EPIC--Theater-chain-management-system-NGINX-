@@ -79,7 +79,12 @@ class Sc_ChamCong
         
         // Kiểm tra kết quả đăng ký thành công
         if (strpos($result, 'Face registration SUCCESSFUL') === false) {
-            throw new Exception('Đăng ký khuôn mặt thất bại. Vui lòng kiểm tra chất lượng video và thử lại.');
+            // Kiểm tra lỗi giả mạo khuôn mặt
+            if (strpos($result, 'Liveness check failed') !== false || strpos($result, 'Liveness FAILED') !== false || strpos($result, 'Spoofing detected') !== false) {
+                throw new Exception('⚠️ Phát hiện giả mạo khuôn mặt! Hệ thống nhận diện bạn đang sử dụng ảnh/video giả. Vui lòng sử dụng khuôn mặt thật để đăng ký.');
+            } else {
+                throw new Exception('Đăng ký khuôn mặt thất bại. Vui lòng kiểm tra chất lượng video và thử lại.');
+            }
         }
         
         $dangKyKhuonMat = DangKyKhuonMat::where('id_nhanvien', $idNhanVien)->first();
@@ -318,7 +323,9 @@ class Sc_ChamCong
         // Kiểm tra xác thực thành công
         if (strpos($result, 'Face verification SUCCESSFUL') === false) {
             // Lấy thông tin lỗi cụ thể
-            if (strpos($result, 'low quality') !== false) {
+            if (strpos($result, 'Liveness check failed') !== false || strpos($result, 'Liveness FAILED') !== false || strpos($result, 'Spoofing detected') !== false) {
+                throw new Exception('⚠️ Phát hiện giả mạo khuôn mặt! Hệ thống nhận diện bạn đang sử dụng ảnh/video giả. Vui lòng sử dụng khuôn mặt thật và thử lại.');
+            } elseif (strpos($result, 'low quality') !== false) {
                 throw new Exception('Chất lượng video không đạt yêu cầu. Vui lòng quay video ở nơi có ánh sáng tốt hơn.');
             } elseif (strpos($result, 'No match') !== false) {
                 throw new Exception('Khuôn mặt không khớp. Vui lòng thử lại hoặc liên hệ quản trị viên.');
