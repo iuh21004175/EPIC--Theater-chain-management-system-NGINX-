@@ -60,10 +60,55 @@ class Sc_GoiVideo {
                 LichGoiVideo::TRANG_THAI_DANG_GOI  // ✅ Thêm trạng thái ĐANG GỌI để nhân viên thấy và có thể tham gia
             ])
             ->with(['khachhang', 'nhanvien'])
-            ->orderBy('thoi_gian_dat', 'asc')
+            ->orderBy('thoi_gian_dat', 'desc')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         return $danhSach;
+    }
+
+    // Nhân viên lấy danh sách lịch với phân trang và sắp xếp giảm dần theo thời gian đặt lịch
+    public function nhanVienLayDanhSachLichPhanTrang($page = 1, $perPage = 10) {
+        $idRapPhim = $_SESSION['UserInternal']['ID_RapPhim'];
+        
+        // Tính tổng số lịch
+        $total = LichGoiVideo::where('id_rapphim', $idRapPhim)
+            ->whereIn('trang_thai', [
+                LichGoiVideo::TRANG_THAI_CHO_NHAN_VIEN,
+                LichGoiVideo::TRANG_THAI_DA_CHON_NV,
+                LichGoiVideo::TRANG_THAI_DANG_GOI
+            ])
+            ->count();
+        
+        $totalPages = ceil($total / $perPage);
+        
+        // Tính offset
+        $offset = ($page - 1) * $perPage;
+        
+        // Lấy danh sách lịch với phân trang, sắp xếp theo thời gian đặt lịch giảm dần
+        $danhSach = LichGoiVideo::where('id_rapphim', $idRapPhim)
+            ->whereIn('trang_thai', [
+                LichGoiVideo::TRANG_THAI_CHO_NHAN_VIEN,
+                LichGoiVideo::TRANG_THAI_DA_CHON_NV,
+                LichGoiVideo::TRANG_THAI_DANG_GOI
+            ])
+            ->with(['khachhang', 'nhanvien'])
+            ->orderBy('thoi_gian_dat', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->skip($offset)
+            ->take($perPage)
+            ->get();
+        
+        return [
+            'data' => $danhSach,
+            'pagination' => [
+                'current_page' => (int)$page,
+                'per_page' => (int)$perPage,
+                'total' => $total,
+                'total_pages' => $totalPages,
+                'has_more' => $total > ($offset + $perPage)
+            ]
+        ];
     }
 
     // Nhân viên chọn tư vấn cho khách hàng (claim phiên)

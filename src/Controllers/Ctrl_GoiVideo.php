@@ -53,12 +53,26 @@ class Ctrl_GoiVideo {
         $scGoiVideo = new Sc_GoiVideo();
         
         try {
-            $danhSach = $scGoiVideo->nhanVienLayDanhSachLichCho();
+            // Kiểm tra xem có yêu cầu phân trang không
+            $page = isset($_GET['page']) ? (int)$_GET['page'] : null;
+            $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
             
-            return [
-                'success' => true,
-                'data' => $danhSach
-            ];
+            if ($page) {
+                // Trả về kết quả phân trang
+                $result = $scGoiVideo->nhanVienLayDanhSachLichPhanTrang($page, $perPage);
+                return [
+                    'success' => true,
+                    'data' => $result['data'],
+                    'pagination' => $result['pagination']
+                ];
+            } else {
+                // Trả về toàn bộ (backward compatible)
+                $danhSach = $scGoiVideo->nhanVienLayDanhSachLichCho();
+                return [
+                    'success' => true,
+                    'data' => $danhSach
+                ];
+            }
         } catch (\Exception $e) {
             return [
                 'success' => false,

@@ -18,28 +18,82 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Biến để track xem đã load dữ liệu chưa
     let dataLoaded = false;
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMore = true;
+    const perPage = 10;
 
-    // Load danh sách lịch
-    async function loadDanhSachLich() {
+    // Load danh sách lịch với phân trang
+    async function loadDanhSachLich(page = 1, append = false) {
+        if (isLoading) return;
+        
         try {
-            const response = await fetch(`${urlBase}/api/goi-video/danh-sach-lich`);
+            isLoading = true;
+            const apiUrl = `${urlBase}/api/goi-video/danh-sach-lich?page=${page}&per_page=${perPage}`;
+            console.log(`📡 Fetching page ${page}:`, apiUrl);
+            const response = await fetch(apiUrl);
             const result = await response.json();
+            console.log(`✅ Response:`, result);
 
             if (result.success) {
-                renderDanhSachLich(result.data);
+                if (append) {
+                    appendDanhSachLich(result.data);
+                } else {
+                    renderDanhSachLich(result.data);
+                }
+                
+                // Cập nhật trạng thái phân trang
+                currentPage = result.pagination.current_page;
+                hasMore = result.pagination.has_more;
                 dataLoaded = true;
+                
+                console.log(`📊 Pagination - Page: ${currentPage}, Total: ${result.pagination.total}, HasMore: ${hasMore}`);
+                
+                // Hiển thị/ẩn nút Load More
+                updateLoadMoreButton();
+                
+                // Cập nhật thông tin phân trang trong UI
+                updatePaginationInfo(result.pagination);
             } else {
                 tableBody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-sm text-red-500">${result.message}</td></tr>`;
             }
         } catch (error) {
             console.error('Lỗi load danh sách:', error);
+            tableBody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-sm text-red-500">Lỗi tải dữ liệu</td></tr>`;
+        } finally {
+            isLoading = false;
         }
+    }
+
+    // Append thêm dữ liệu vào bảng (cho Load More)
+    function appendDanhSachLich(danhSach) {
+        if (danhSach.length === 0) return;
+
+        const newRows = danhSach.map(lich => `
+            <tr>
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium">${lich.khachhang.ho_ten}</div>
+                    <div class="text-sm text-gray-500">${lich.khachhang.email}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm">${lich.chu_de}</div>
+                </td>
+                <td class="px-6 py-4 text-sm">${formatDateTime(lich.thoi_gian_dat)}</td>
+                <td class="px-6 py-4">${getTrangThaiBadge(lich.trang_thai)}</td>
+                <td class="px-6 py-4 text-sm">${lich.nhanvien ? lich.nhanvien.ten : '-'}</td>
+                <td class="px-6 py-4 text-right">${getActions(lich)}</td>
+            </tr>
+        `).join('');
+
+        tableBody.insertAdjacentHTML('beforeend', newRows);
+        attachEventListeners();
     }
 
     // Render danh sách
     function renderDanhSachLich(danhSach) {
         if (danhSach.length === 0) {
             tableBody.innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">Không có lịch gọi video</td></tr>`;
+            updateLoadMoreButton();
             return;
         }
 
@@ -119,14 +173,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const response = await fetch(`${urlBase}/api/goi-video/${idLich}/chon-tu-van`, { method: 'POST' });
         const result = await response.json();
         alert(result.message);
-        if (result.success) loadDanhSachLich();
+        if (result.success) {
+            currentPage = 1;
+            hasMore = true;
+            loadDanhSachLich(1, false);
+        }
     }
 
     async function huyTuVan(idLich) {
         const response = await fetch(`${urlBase}/api/goi-video/${idLich}/huy`, { method: 'POST' });
         const result = await response.json();
         alert(result.message);
-        if (result.success) loadDanhSachLich();
+        if (result.success) {
+            currentPage = 1;
+            hasMore = true;
+            loadDanhSachLich(1, false);
+        }
     }
 
     function formatDateTime(dt) {
@@ -134,7 +196,79 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${d.toLocaleDateString('vi-VN')} ${d.toLocaleTimeString('vi-VN')}`;
     }
 
-    socket.on('lichgoivideo:moi', () => loadDanhSachLich());
+    // Cập nhật thông tin phân trang trên UI
+    function updatePaginationInfo(pagination) {
+        let paginationInfo = document.getElementById('pagination-info');
+        
+        if (!paginationInfo) {
+            // Tạo phần tử hiển thị thông tin phân trang
+            const tableContainer = tableBody.closest('table');
+            if (tableContainer && tableContainer.parentElement) {
+                const infoDiv = document.createElement('div');
+                infoDiv.id = 'pagination-info';
+                infoDiv.className = 'px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600';
+                tableContainer.parentElement.appendChild(infoDiv);
+                paginationInfo = infoDiv;
+            }
+        }
+        
+        if (paginationInfo) {
+            const loaded = currentPage * perPage;
+            const showing = Math.min(loaded, pagination.total);
+            paginationInfo.innerHTML = `Hiển thị <strong>${showing}</strong> / <strong>${pagination.total}</strong> lịch hẹn | Trang <strong>${currentPage}</strong>`;
+        }
+    }
+
+    // Cập nhật trạng thái nút Load More
+    function updateLoadMoreButton() {
+        let loadMoreBtn = document.getElementById('load-more-btn');
+        
+        if (!loadMoreBtn) {
+            // Tạo nút Load More nếu chưa có
+            const loadMoreRow = document.createElement('tr');
+            loadMoreRow.id = 'load-more-row';
+            loadMoreRow.innerHTML = `
+                <td colspan="6" class="px-6 py-4 text-center">
+                    <button id="load-more-btn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-arrow-down mr-2"></i> Tải thêm
+                    </button>
+                </td>
+            `;
+            tableBody.parentElement.appendChild(loadMoreRow);
+            loadMoreBtn = document.getElementById('load-more-btn');
+            
+            // Gắn sự kiện click
+            loadMoreBtn.addEventListener('click', function() {
+                if (!isLoading && hasMore) {
+                    loadDanhSachLich(currentPage + 1, true);
+                }
+            });
+        }
+        
+        // Hiển thị/ẩn nút dựa trên hasMore
+        const loadMoreRow = document.getElementById('load-more-row');
+        if (loadMoreRow) {
+            loadMoreRow.style.display = hasMore ? '' : 'none';
+        }
+        
+        // Cập nhật text nút khi đang loading
+        if (loadMoreBtn) {
+            if (isLoading) {
+                loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang tải...';
+                loadMoreBtn.disabled = true;
+            } else {
+                loadMoreBtn.innerHTML = '<i class="fas fa-arrow-down mr-2"></i> Tải thêm';
+                loadMoreBtn.disabled = false;
+            }
+        }
+    }
+
+    socket.on('lichgoivideo:moi', () => {
+        // Reset về trang 1 khi có lịch mới
+        currentPage = 1;
+        hasMore = true;
+        loadDanhSachLich(1, false);
+    });
 
     // Load dữ liệu khi tab video được active
     const btnVideo = document.getElementById('tab-btn-video');
