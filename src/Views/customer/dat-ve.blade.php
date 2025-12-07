@@ -235,6 +235,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (match && match[1]) return "https://www.youtube.com/embed/" + match[1];
         return url;
     }
+
+    function getYouTubeThumbnail(url) {
+        if (!url) return "";
+        const regex = /(?:youtube\.com\/(?:.*v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]+)/;
+        const match = url.match(regex);
+        if (match && match[1]) {
+            // Trả về thumbnail chất lượng cao của YouTube
+            return `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`;
+        }
+        return "";
+    }
     let idRapPhim = "";
 
     // Load rạp
@@ -370,9 +381,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadThongTinPhim(phim) {
+        const thumbnailUrl = getYouTubeThumbnail(phim.trailer_url) || `${urlMinio}/${phim.poster_url}`;
         const html = `
             <div class="relative w-full h-72 md:h-80 lg:h-96 bg-black">
-                <img src="${urlMinio}/${phim.poster_url}" alt="${phim.ten_phim}" class="w-full h-full object-cover opacity-70">
+                <img src="${thumbnailUrl}" alt="${phim.ten_phim}" class="w-full h-full object-cover opacity-70">
                 <div class="absolute inset-0 flex items-center justify-center">
                     <button type="button" data-url="${getYouTubeEmbedUrl(phim.trailer_url)}" class="trailer-btn flex items-center justify-center w-[320px] h-[100px] rounded-lg text-white font-semibold px-4 py-2 text-sm transition-all duration-300"> <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="circle-play" class="w-12 h-12 mr-3" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"> <path fill="currentColor" d="M0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zM188.3 147.1c-7.6 4.2-12.3 12.3-12.3 20.9V344c0 8.7 4.7 16.7 12.3 20.9s16.8 4.1 24.3-.5l144-88c7.1-4.4 11.5-12.1 11.5-20.5s-4.4-16.1-11.5-20.5l-144-88c-7.4-4.5 -16.7-4.7-24.3-.5z"></path> </svg> </button>
                 </div>

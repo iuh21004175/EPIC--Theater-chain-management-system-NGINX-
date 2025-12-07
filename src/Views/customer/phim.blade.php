@@ -136,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderCard(phim) {
         const encoded = base64Encode(phim.id + salt);
         return `
-        <div class="relative rounded-xl overflow-hidden shadow-lg group bg-white">
+        <div class="relative rounded-xl overflow-hidden shadow-lg group bg-gray-50">
             <img src="${urlMinio}/${phim.poster_url}" alt="${phim.ten_phim}"
                  class="w-full h-[400px] object-cover transition-transform duration-300 group-hover:scale-105">
             <div class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-3 

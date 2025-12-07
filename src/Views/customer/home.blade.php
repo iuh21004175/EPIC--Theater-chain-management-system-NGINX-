@@ -177,7 +177,7 @@
     function renderCard(phim) {
       const encoded = base64Encode(phim.id + salt);
       return `
-        <div class="relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl group bg-white 
+        <div class="relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl group bg-gradient-to-br from-white to-gray-50 
                     transform hover:-translate-y-2 transition-all duration-500 ease-out border border-gray-100">
           <!-- Ảnh poster -->
           <div class="relative overflow-hidden aspect-[2/3]">
@@ -223,11 +223,11 @@
           
           <!-- Thông tin phim -->
           <div class="p-4 bg-gradient-to-br from-white to-gray-50">
-            <h3 class="font-bold text-lg text-gray-900 line-clamp-2 mb-2 group-hover:text-blue-600 
+            <h3 class="font-bold text-lg text-gray-900 line-clamp-2 mb-8 group-hover:text-blue-600 
                        transition-colors duration-300">
               ${phim.ten_phim}
             </h3>
-            <div class="flex items-center gap-2 text-sm text-gray-600">
+            <div class="flex items-center gap-2 text-sm text-gray-600" style="position: absolute; bottom: 16px;">
               <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
               </svg>
@@ -241,7 +241,7 @@
     function renderCardBanChay(phim) {
       const encoded = base64Encode(phim.id + salt);
       return `
-        <div class="relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl group bg-white 
+        <div class="relative rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl group bg-gradient-to-br from-white to-amber-50
                     transform hover:-translate-y-2 transition-all duration-500 ease-out border border-amber-100">
           <!-- Ảnh poster -->
           <div class="relative overflow-hidden aspect-[2/3]">
@@ -298,11 +298,11 @@
           
           <!-- Thông tin phim -->
           <div class="p-4 bg-gradient-to-br from-white to-amber-50">
-            <h3 class="font-bold text-lg text-gray-900 line-clamp-2 mb-2 group-hover:text-amber-600 
+            <h3 class="font-bold text-lg text-gray-900 line-clamp-2 mb-8 group-hover:text-amber-600 
                        transition-colors duration-300">
               ${phim.ten_phim}
             </h3>
-            <div class="flex items-center gap-2 text-sm text-gray-600">
+            <div class="flex items-center gap-2 text-sm text-gray-600" style="position: absolute; bottom: 16px;">
               <svg class="w-4 h-4 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
               </svg>
