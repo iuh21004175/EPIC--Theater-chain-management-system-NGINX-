@@ -154,7 +154,7 @@ flowchart TD
     CHK_EXIST -->|Có| UPDATE_CHROMA[BƯỚC 7: UPDATE embedding<br/>collection.update]
     CHK_EXIST -->|Không| ADD_CHROMA[BƯỚC 7: ADD embedding<br/>collection.add]
     
-    UPDATE_CHROMA --> CHROMA_OK[✓ ChromaDB saved<br/>face_{id}]
+    UPDATE_CHROMA --> CHROMA_OK["✓ ChromaDB saved<br/>face_{id}"]
     ADD_CHROMA --> CHROMA_OK
     
     CHROMA_OK --> UPDATE_DB[BƯỚC 8: Cập nhật MySQL]
