@@ -485,6 +485,11 @@ class Sc_GoiVideo {
         $roomData = LichGoiVideo::with('khachhang', 'nhanvien')
             ->where('room_id', $roomId)
             ->first();
+        
+        if (!$roomData) {
+            throw new \Exception("Phòng gọi video không tồn tại hoặc đã kết thúc");
+        }
+        
         return $roomData;
     }
 }

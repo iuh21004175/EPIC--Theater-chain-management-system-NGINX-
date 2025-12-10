@@ -23,9 +23,35 @@ class Ctrl_GoiVideo {
             header('Location: ' . $_ENV['URL_WEB_BASE']);
             exit;
         }
+        
         $sc = new Sc_GoiVideo();
-        $roomInfo = $sc->layThongTinPhongGoiVideo($roomId);
-        return view('customer.video-call', ['roomId' => $roomId, 'roomInfo' => $roomInfo]);
+        
+        // Kiểm tra quyền truy cập phòng
+        try {
+            $roomInfo = $sc->layThongTinPhongGoiVideo($roomId);
+            
+            // Nếu là nhân viên, kiểm tra xem có phải nhân viên được phân công không
+            if (isset($_SESSION['UserInternal'])) {
+                $idNhanVien = $_SESSION['UserInternal']['ID'];
+                
+                if (!$roomInfo || $roomInfo->id_nhanvien != $idNhanVien) {
+                    // Không phải nhân viên được phân công
+                    http_response_code(403);
+                    return view('internal.403', [
+                        'message' => 'Bạn không có quyền tham gia cuộc gọi này. Chỉ nhân viên được phân công mới có thể tham gia.'
+                    ]);
+                }
+            }
+            
+            return view('customer.video-call', ['roomId' => $roomId, 'roomInfo' => $roomInfo]);
+        } catch (\Exception $e) {
+            http_response_code(404);
+            if (isset($_SESSION['UserInternal'])) {
+                return view('internal.403', ['message' => $e->getMessage()]);
+            }
+            header('Location: ' . $_ENV['URL_WEB_BASE']);
+            exit;
+        }
     }
 
     // API: Khách hàng đặt lịch gọi video

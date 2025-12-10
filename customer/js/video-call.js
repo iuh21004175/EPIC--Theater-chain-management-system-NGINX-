@@ -226,11 +226,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Join room thất bại
-        socket.on('join-error', (data) => {
-            console.error('❌ Lỗi join room:', data.message);
-            alert(data.message);
-            window.location.href = '/';
-        });
+        // socket.on('join-error', (data) => {
+        //     console.error('❌ Lỗi join room:', data.message);
+        //     alert(data.message);
+        //     window.location.href = './bang-dieu-khien';
+        // });
 
         // Có người tham gia
         socket.on('user-joined', async (data) => {

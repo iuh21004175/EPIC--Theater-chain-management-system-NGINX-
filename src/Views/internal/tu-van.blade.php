@@ -327,7 +327,10 @@
     </div>
     <!-- Tab: Gọi video -->
     <div id="tab-video" class="tab-content" style="display:none;">
-        <div class="bg-white shadow-md rounded-lg" id="duyet-lich-goi-video-app" data-url="{{$_ENV['URL_WEB_BASE']}}" data-urlinternal="{{$_ENV['URL_INTERNAL_BASE']}}" >
+        <div class="bg-white shadow-md rounded-lg" id="duyet-lich-goi-video-app" 
+             data-url="{{$_ENV['URL_WEB_BASE']}}" 
+             data-urlinternal="{{$_ENV['URL_INTERNAL_BASE']}}"
+             data-idnhanvien="{{$_SESSION['UserInternal']['ID']}}" >
             <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
                 <h2 class="text-xl font-semibold text-gray-800">Quản lý lịch gọi video tư vấn</h2>
                 <p class="mt-1 text-sm text-gray-600">Danh sách yêu cầu gọi video từ khách hàng</p>

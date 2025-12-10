@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
                 <td class="px-6 py-4 text-sm">${formatDateTime(lich.thoi_gian_dat)}</td>
                 <td class="px-6 py-4">${getTrangThaiBadge(lich.trang_thai)}</td>
-                <td class="px-6 py-4 text-sm">${lich.nhanvien ? lich.nhanvien.ten : '-'}</td>
+                <td class="px-6 py-4 text-sm">${lich.nhanvien ? lich.nhanvien.ten : 'Chưa có'}</td>
                 <td class="px-6 py-4 text-right">${getActions(lich)}</td>
             </tr>
         `).join('');
@@ -127,26 +127,41 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getActions(lich) {
+        const idNhanVienHienTai = appElement?.dataset.idnhanvien;
+        
         if (lich.trang_thai === 1) {
             // Trạng thái "Chờ nhân viên" - Cho phép chọn tư vấn
             return `<button class="btn-chon text-blue-600 hover:text-blue-900 font-medium" data-id="${lich.id}">Chọn tư vấn</button>`;
         } else if (lich.trang_thai === 2) {
-            // Trạng thái "Đã chọn NV" - Hiển thị nút Gọi và Hủy
-            // ✅ Dùng urlInternal để link đến /internal/video-call
-            return `<a href="${urlInternal}/video-call?room=${lich.room_id}" 
-                       class="inline-block px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors mr-2">
-                        <i class="fas fa-video mr-1"></i> Gọi ngay
-                    </a>
-                    <button class="btn-huy px-4 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors" 
-                            data-id="${lich.id}">
-                        <i class="fas fa-times mr-1"></i> Hủy
-                    </button>`;
+            // Trạng thái "Đã chọn NV" - Chỉ nhân viên được phân công mới thấy nút
+            if (lich.id_nhanvien && idNhanVienHienTai && lich.id_nhanvien == idNhanVienHienTai) {
+                return `<a href="${urlInternal}/video-call?room=${lich.room_id}" 
+                           class="inline-block px-4 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors mr-2">
+                            <i class="fas fa-video mr-1"></i> Gọi ngay
+                        </a>
+                        <button class="btn-huy px-4 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 transition-colors" 
+                                data-id="${lich.id}">
+                            <i class="fas fa-times mr-1"></i> Hủy
+                        </button>`;
+            } else {
+                // Nhân viên khác không được phép tham gia
+                return `<span class="text-sm text-gray-500 italic">
+                            <i class="fas fa-lock mr-1"></i> Đã được ${lich.nhanvien ? lich.nhanvien.ten : 'nhân viên khác'} nhận
+                        </span>`;
+            }
         } else if (lich.trang_thai === 3) {
-            // Trạng thái "Đang gọi" - Cho phép vào lại room
-            return `<a href="${urlInternal}/video-call?room=${lich.room_id}" 
-                       class="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors">
-                        <i class="fas fa-video mr-1"></i> Vào lại
-                    </a>`;
+            // Trạng thái "Đang gọi" - Chỉ nhân viên được phân công mới vào lại được
+            if (lich.id_nhanvien && idNhanVienHienTai && lich.id_nhanvien == idNhanVienHienTai) {
+                return `<a href="${urlInternal}/video-call?room=${lich.room_id}" 
+                           class="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-video mr-1"></i> Vào lại
+                        </a>`;
+            } else {
+                // Nhân viên khác không được phép vào
+                return `<span class="text-sm text-gray-500 italic">
+                            <i class="fas fa-phone mr-1"></i> ${lich.nhanvien ? lich.nhanvien.ten : 'Nhân viên khác'} đang gọi
+                        </span>`;
+            }
         }
         return '<span class="text-gray-400">-</span>';
     }
