@@ -1899,7 +1899,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-800">${phim.ten_phim}</td>
                     <td class="px-4 py-3 text-sm text-gray-800 text-right">${formatCurrency(phim.doanh_thu_ve || 0)}</td>
-                    <td class="px-4 py-3 text-sm text-gray-800 text-right">${formatCurrency(phim.doanh_thu_mua || 0)}</td>
                     <td class="px-4 py-3 text-sm text-gray-900 font-bold text-right">${formatCurrency(phim.tong_doanh_thu || 0)}</td>
                 </tr>
             `).join('');

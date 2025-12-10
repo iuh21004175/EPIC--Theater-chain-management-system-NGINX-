@@ -1388,10 +1388,18 @@ function tinhHieuQuaTheoKhungGio(duLieuSuatChieu, duLieuVe, duLieuChiTietDonHang
             time: khung.ten,
             occupancy: Math.round(tyLeLapDay * 100) / 100,
             revenue: Math.round(tongDoanhThu),
-            contribution: 0, // Có thể tính nếu cần
+            contribution: 0, // Sẽ được tính sau khi có tổng doanh thu
             trend: 0
         };
     }); // Hiển thị tất cả khung giờ, kể cả khi không có dữ liệu
+    
+    // Tính tổng doanh thu của tất cả các khung giờ
+    const tongDoanhThuTatCa = ketQua.reduce((sum, item) => sum + item.revenue, 0);
+    
+    // Cập nhật tỷ lệ đóng góp cho mỗi khung giờ
+    ketQua.forEach(item => {
+        item.contribution = tongDoanhThuTatCa > 0 ? Math.round((item.revenue / tongDoanhThuTatCa) * 100 * 100) / 100 : 0;
+    });
     
     return ketQua;
 }
@@ -1462,6 +1470,10 @@ function capNhatUI(processedData) {
     // Tính lại xu hướng doanh thu với chi tiết vé và F&B
     const xuHuongDoanhThuChiTiet = cachedRawData ? tinhXuHuongDoanhThuChiTiet(cachedRawData, processedData.xu_huong_doanh_thu.danh_sach_nhan) : processedData.xu_huong_doanh_thu.chi_tiet.map(() => ({ doanh_thu_ve: 0, doanh_thu_fnb: 0, tong_doanh_thu: 0 }));
     
+    // Tính tổng doanh thu phim và F&B để tính tỷ lệ đóng góp
+    const tongDoanhThuPhim = processedData.top_10_phim.danh_sach.reduce((sum, item) => sum + (item.doanh_thu || 0), 0);
+    const tongDoanhThuFnB = processedData.top_10_san_pham_ban_chay.danh_sach.reduce((sum, item) => sum + (item.doanh_thu || 0), 0);
+    
     // Chuyển đổi dữ liệu để tương thích với các hàm khởi tạo biểu đồ hiện có
     const chartData = {
         revenueByDate: xuHuongDoanhThuChiTiet.map((item, index) => ({
@@ -1478,14 +1490,14 @@ function capNhatUI(processedData) {
             name: item.ten_phim,
             revenue: item.doanh_thu,
             tickets: item.so_ve_ban,
-            contribution: 0, // Có thể tính nếu cần
+            contribution: tongDoanhThuPhim > 0 ? Math.round((item.doanh_thu / tongDoanhThuPhim) * 100 * 100) / 100 : 0,
             trend: 0
         })),
         foods: processedData.top_10_san_pham_ban_chay.danh_sach.map(item => ({
             name: item.ten_san_pham,
             revenue: item.doanh_thu,
             quantity: item.so_luong,
-            contribution: 0, // Có thể tính nếu cần
+            contribution: tongDoanhThuFnB > 0 ? Math.round((item.doanh_thu / tongDoanhThuFnB) * 100 * 100) / 100 : 0,
             trend: 0
         })),
         showtimes: processedData.hieu_qua_theo_khung_gio || [],

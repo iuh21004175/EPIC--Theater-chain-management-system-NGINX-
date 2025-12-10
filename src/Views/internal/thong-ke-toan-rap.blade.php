@@ -435,7 +435,6 @@
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Poster</th>
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tên phim</th>
                             <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Doanh thu bán vé</th>
-                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Doanh thu mua phim</th>
                             <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tổng</th>
                         </tr>
                     </thead>
