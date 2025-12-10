@@ -359,8 +359,12 @@ function openChatSession(session) {
     document.getElementById('chatbox-form').dataset.spinnerRef = spinner.id;
     
     // Gửi sự kiện mở phiên chat đến server
-    const idNhanVien = document.getElementById('tab-chat').dataset.idnhanvien;
-    const tenNhanVien = document.getElementById('tab-chat').dataset.tennhanvien || 'Nhân viên';
+    const tabChat = document.getElementById('tab-chat');
+    const idNhanVien = tabChat.dataset.idnhanvien;
+    const tenNhanVien = tabChat.dataset.tennhanvien || tabChat.getAttribute('data-tenNhanVien') || 'Nhân viên';
+    
+    console.log('DEBUG - Mở phiên chat:', { id_phienchat: session.id, id_nhanvien: idNhanVien, ten_nhanvien: tenNhanVien });
+    
     socket.emit('nhan-vien-mo-phien-chat', JSON.stringify({
         id_phienchat: session.id,
         id_nhanvien: idNhanVien,
