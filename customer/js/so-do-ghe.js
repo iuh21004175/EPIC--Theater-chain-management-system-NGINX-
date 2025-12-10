@@ -291,6 +291,7 @@ async function loadSeats() {
                 const totalSeats = selectedSeats.reduce((sum, s) => sum + s.gia, 0);
                 const totalFood = selectedFood.reduce((sum, f) => sum + f.gia * f.quantity, 0);
                 const totalBefore = totalSeats + totalFood;
+                document.getElementById("seatCountdownTimer").classList.add("hidden");
 
                 // Trừ gift card nếu có
                 let total = totalBefore;
@@ -487,7 +488,6 @@ async function handlePaymentSuccess(donhangId) {
     // Hiện box thanh toán thành công
     const successBox = document.getElementById("success_pay_box");
     successBox.classList.remove("hidden");
-    document.getElementById("seatCountdownTimer").classList.add("hidden");
     successBox.classList.add("opacity-100");
 
     // Gọi API lấy chi tiết đơn hàng
