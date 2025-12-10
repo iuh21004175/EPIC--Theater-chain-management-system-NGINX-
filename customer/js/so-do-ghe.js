@@ -896,9 +896,10 @@ async function loadFood(idRap) {
                 const existing = selectedFood.find(f => f.id === sp.id);
                 if (existing) {
                     existing.quantity += 1;
-
+                    quantityEl.textContent = existing.quantity;
                 } else {
                     selectedFood.push({ id: sp.id, ten: sp.ten, gia: sp.gia, quantity: 1 });
+                    quantityEl.textContent = "1";
                 }
                 updateSelectedSeat(
                     document.getElementById("selectedSeatsContainer"),
@@ -908,14 +909,13 @@ async function loadFood(idRap) {
             });
 
             minusBtn.addEventListener("click", () => {
-                if (quantity > 0) {
-                    quantity--;
-                    quantityEl.textContent = quantity;
-
-                    const existing = selectedFood.find(f => f.id === sp.id);
+                const existing = selectedFood.find(f => f.id === sp.id);
                     if (existing) {
+                        let quantity = existing.quantity - 1;
+                        if (quantity < 0) quantity = 0;
+                        quantityEl.textContent = quantity;
                         existing.quantity = quantity;
-                        if (quantity === 0) {
+                        if (quantity == 0) {
                             selectedFood = selectedFood.filter(f => f.id !== sp.id);
                         }
                     }
@@ -924,7 +924,6 @@ async function loadFood(idRap) {
                         document.getElementById("totalPrice"),
                         continueContainer
                     );
-                }
             });
 
             foodContainer.appendChild(div);
