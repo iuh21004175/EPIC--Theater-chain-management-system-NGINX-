@@ -1397,6 +1397,8 @@ function setupSocketListeners() {
         try {
             const { id_phienchat, id_nhanvien, ten_nhanvien } = JSON.parse(data);
             
+            console.log('Socket phien-chat-da-duoc-mo received:', { id_phienchat, id_nhanvien, ten_nhanvien });
+            
             // Ưu tiên sử dụng ten_nhanvien từ socket data
             // Nếu không có, mới lấy từ danh sách sessions
             let tenNhanVien = ten_nhanvien;
@@ -1406,6 +1408,8 @@ function setupSocketListeners() {
                 const session = sessions.find(s => s.id == id_phienchat);
                 tenNhanVien = session?.dang_duoc_mo_boi?.ten_nhanvien || 'nhân viên khác';
             }
+            
+            console.log('Tên nhân viên sẽ hiển thị:', tenNhanVien);
             
             alert(`Phiên chat này đang được mở bởi ${tenNhanVien}`);
         } catch (error) {
