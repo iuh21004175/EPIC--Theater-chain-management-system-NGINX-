@@ -487,6 +487,7 @@ async function handlePaymentSuccess(donhangId) {
     // Hiện box thanh toán thành công
     const successBox = document.getElementById("success_pay_box");
     successBox.classList.remove("hidden");
+    document.getElementById("seatCountdownTimer").classList.add("hidden");
     successBox.classList.add("opacity-100");
 
     // Gọi API lấy chi tiết đơn hàng
