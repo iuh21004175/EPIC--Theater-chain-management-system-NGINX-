@@ -238,7 +238,8 @@ function renderChatSessions(sessions, append = false) {
         const isLocked = session.dang_duoc_mo_boi && session.dang_duoc_mo_boi.id_nhanvien != currentStaffId;
         const lockedClass = isLocked ? 'locked' : '';
         const lockedStyle = isLocked ? 'opacity: 0.6; cursor: not-allowed;' : '';
-        const lockedBadge = isLocked ? `<div class="locked-badge text-xs text-orange-600 mt-1"><i class="fas fa-lock"></i> Đang được mở bởi ${session.dang_duoc_mo_boi.ten_nhanvien}</div>` : '';
+        const lockedStaffName = isLocked ? (session.dang_duoc_mo_boi.ten_nhanvien || 'nhân viên khác') : '';
+        const lockedBadge = isLocked ? `<div class="locked-badge text-xs text-orange-600 mt-1"><i class="fas fa-lock"></i> Đang được mở bởi ${lockedStaffName}</div>` : '';
 
         // Tạo nội dung tin nhắn cuối: nếu là ảnh thì hiển thị icon
         let lastMessageContent = '<em>(Chưa có tin nhắn)</em>';
@@ -1394,8 +1395,14 @@ function setupSocketListeners() {
     // Lắng nghe khi phiên chat đã được mở bởi người khác
     socket.on("phien-chat-da-duoc-mo", function(data) {
         try {
-            const { id_phienchat, id_nhanvien, ten_nhanvien } = JSON.parse(data);
-            alert(`Phiên chat này đang được mở bởi ${ten_nhanvien}`);
+            const { id_phienchat } = JSON.parse(data);
+            
+            // Lấy tên nhân viên từ danh sách sessions
+            const sessions = window.loadedSessions || [];
+            const session = sessions.find(s => s.id == id_phienchat);
+            const tenNhanVien = session?.dang_duoc_mo_boi?.ten_nhanvien || 'nhân viên khác';
+            
+            alert(`Phiên chat này đang được mở bởi ${tenNhanVien}`);
         } catch (error) {
             console.error("Lỗi xử lý sự kiện phiên chat đã được mở:", error);
         }
