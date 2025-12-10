@@ -151,7 +151,8 @@
                         try {
                             $redis->publish('nhan-vien-mo-phien-chat', json_encode([
                                 'id' => $idPhienChat,
-                                'id_nhanvien' => $_SESSION['UserInternal']['ID']
+                                'id_nhanvien' => $_SESSION['UserInternal']['ID'],
+                                'ten_nhanvien' => $_SESSION['UserInternal']['Ten'] ?? "Nhân viên #{$_SESSION['UserInternal']['ID']}"
                             ]));
                         } catch (\Exception $e) {
                             error_log("Không thể publish Redis: " . $e->getMessage());
