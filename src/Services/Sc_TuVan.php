@@ -246,10 +246,13 @@
                         $staffInfo = $redis->get("phien-chat-{$phienChat->id}-nhan-vien");
                         if ($staffInfo) {
                             $staffData = json_decode($staffInfo, true);
-                            $phienChat->dang_duoc_mo_boi = [
-                                'id_nhanvien' => $staffData['id_nhanvien'],
-                                'ten_nhanvien' => $staffData['ten_nhanvien']
-                            ];
+                            if ($staffData && isset($staffData['id_nhanvien'])) {
+                                $phienChat->dang_duoc_mo_boi = [
+                                    'id_nhanvien' => $staffData['id_nhanvien'],
+                                    'ten_nhanvien' => $staffData['ten_nhanvien'] ?? "Nhân viên #{$staffData['id_nhanvien']}"
+                                ];
+                                error_log("DEBUG - Session {$phienChat->id} locked by: " . json_encode($phienChat->dang_duoc_mo_boi));
+                            }
                         }
                     } catch (\Exception $e) {
                         error_log("Không thể lấy thông tin từ Redis: " . $e->getMessage());
