@@ -14,6 +14,9 @@ let isLoadingMessages = false;
 let hasMoreMessages = true;
 let oldestMessageId = null;
 
+// Biến global để lưu danh sách sessions
+window.loadedSessions = [];
+
 document.addEventListener('DOMContentLoaded', function () {
     // Khởi tạo danh sách phiên chat
     const idNhanVien = document.getElementById('tab-chat').dataset.idnhanvien;
@@ -25,6 +28,13 @@ document.addEventListener('DOMContentLoaded', function () {
     
     loadChatSessions();
     socket.emit('nhan-vien-tham-gia-tu-van', JSON.stringify({ id: idNhanVien }));
+    
+    // Xử lý khi đóng trang - đóng phiên chat hiện tại
+    window.addEventListener('beforeunload', function() {
+        if (window.currentChatSession) {
+            closeChatSession(window.currentChatSession.id);
+        }
+    });
     // Xử lý nút làm mới
     const refreshBtn = document.getElementById('btn-refresh-sessions');
     if (refreshBtn) {
@@ -101,6 +111,9 @@ async function loadChatSessions(reset = false) {
         }
 
         if (result.success) {
+            // Lưu sessions vào biến global
+            window.loadedSessions = append ? [...window.loadedSessions, ...result.data] : result.data;
+            
             // Hiển thị phiên chat
             renderChatSessions(result.data, !reset);
             
@@ -219,6 +232,13 @@ function renderChatSessions(sessions, append = false) {
         
         // Thêm class highlight nếu có tin nhắn chưa đọc
         const highlightClass = unreadCount > 0 ? 'border-l-4 border-red-500' : '';
+        
+        // Kiểm tra xem phiên chat có đang được mở bởi nhân viên khác không
+        const currentStaffId = document.getElementById('tab-chat').dataset.idnhanvien;
+        const isLocked = session.dang_duoc_mo_boi && session.dang_duoc_mo_boi.id_nhanvien != currentStaffId;
+        const lockedClass = isLocked ? 'locked' : '';
+        const lockedStyle = isLocked ? 'opacity: 0.6; cursor: not-allowed;' : '';
+        const lockedBadge = isLocked ? `<div class="locked-badge text-xs text-orange-600 mt-1"><i class="fas fa-lock"></i> Đang được mở bởi ${session.dang_duoc_mo_boi.ten_nhanvien}</div>` : '';
 
         // Tạo nội dung tin nhắn cuối: nếu là ảnh thì hiển thị icon
         let lastMessageContent = '<em>(Chưa có tin nhắn)</em>';
@@ -234,8 +254,11 @@ function renderChatSessions(sessions, append = false) {
         }
 
         const item = document.createElement('div');
-        item.className = `session-item ${highlightClass} relative`;
+        item.className = `session-item ${highlightClass} ${lockedClass} relative`;
         item.dataset.id = session.id;
+        if (lockedStyle) {
+            item.style.cssText = lockedStyle;
+        }
         item.innerHTML = `
             <div class="flex justify-between items-center">
                 <div>
@@ -248,6 +271,7 @@ function renderChatSessions(sessions, append = false) {
                 ${lastMessageContent}
             </div>
             <div class="text-xs text-gray-400 mt-1">${formatTime(session.updated_at)}</div>
+            ${lockedBadge}
             ${unreadBadge}
         `;
         
@@ -261,6 +285,20 @@ function renderChatSessions(sessions, append = false) {
 
 // Mở phiên chat khi nhấn vào item
 function openChatSession(session) {
+    // Kiểm tra xem phiên chat đã được mở bởi nhân viên khác chưa
+    if (session.dang_duoc_mo_boi) {
+        const currentStaffId = document.getElementById('tab-chat').dataset.idnhanvien;
+        if (session.dang_duoc_mo_boi.id_nhanvien != currentStaffId) {
+            alert(`Phiên chat này đang được mở bởi ${session.dang_duoc_mo_boi.ten_nhanvien}`);
+            return;
+        }
+    }
+    
+    // Đóng phiên chat cũ nếu có
+    if (window.currentChatSession && window.currentChatSession.id != session.id) {
+        closeChatSession(window.currentChatSession.id);
+    }
+    
     // Highlight item được chọn
     const items = document.querySelectorAll('.session-item');
     items.forEach(item => {
@@ -318,6 +356,15 @@ function openChatSession(session) {
     // Lưu session ID hiện tại vào data attribute
     document.getElementById('chatbox-form').dataset.sessionId = session.id;
     document.getElementById('chatbox-form').dataset.spinnerRef = spinner.id;
+    
+    // Gửi sự kiện mở phiên chat đến server
+    const idNhanVien = document.getElementById('tab-chat').dataset.idnhanvien;
+    const tenNhanVien = document.getElementById('tab-chat').dataset.tennhanvien || 'Nhân viên';
+    socket.emit('nhan-vien-mo-phien-chat', JSON.stringify({
+        id_phienchat: session.id,
+        id_nhanvien: idNhanVien,
+        ten_nhanvien: tenNhanVien
+    }));
     // Thêm id khách hàng vào data attribute nếu có
     if (session.khachhang) {
         document.getElementById('chatbox-form').dataset.idKhachHang = session.khachhang.id;
@@ -328,6 +375,19 @@ function openChatSession(session) {
     
     // Thiết lập infinite scroll cho tin nhắn
     setupMessageInfiniteScroll();
+}
+
+// Đóng phiên chat
+function closeChatSession(sessionId) {
+    const idNhanVien = document.getElementById('tab-chat').dataset.idnhanvien;
+    
+    // Gửi sự kiện đóng phiên chat đến server
+    socket.emit('nhan-vien-dong-phien-chat', JSON.stringify({
+        id_phienchat: sessionId,
+        id_nhanvien: idNhanVien
+    }));
+    
+    console.log(`Đã đóng phiên chat ${sessionId}`);
 }
 
 // Tải tin nhắn của phiên chat
@@ -1261,6 +1321,86 @@ function updateSessionStatus(sessionId, status) {
 
 // Thiết lập các listener cho socket
 function setupSocketListeners() {
+    // Lắng nghe sự kiện khi phiên chat được mở bởi nhân viên khác
+    socket.on("phien-chat-duoc-mo", function(data) {
+        try {
+            const { id_phienchat, id_nhanvien, ten_nhanvien } = JSON.parse(data);
+            const currentStaffId = document.getElementById('tab-chat').dataset.idnhanvien;
+            
+            // Nếu không phải nhân viên hiện tại mở
+            if (id_nhanvien != currentStaffId) {
+                // Tìm và vô hiệu hóa phiên chat trong danh sách
+                const sessionItem = document.querySelector(`.session-item[data-id="${id_phienchat}"]`);
+                if (sessionItem) {
+                    sessionItem.classList.add('locked');
+                    sessionItem.style.opacity = '0.6';
+                    sessionItem.style.cursor = 'not-allowed';
+                    
+                    // Thêm badge hiển thị tên nhân viên đang mở
+                    let lockedBadge = sessionItem.querySelector('.locked-badge');
+                    if (!lockedBadge) {
+                        lockedBadge = document.createElement('div');
+                        lockedBadge.className = 'locked-badge text-xs text-orange-600 mt-1';
+                        lockedBadge.innerHTML = `<i class="fas fa-lock"></i> Đang được mở bởi ${ten_nhanvien}`;
+                        sessionItem.appendChild(lockedBadge);
+                    }
+                }
+                
+                // Cập nhật dữ liệu session trong danh sách
+                const sessions = window.loadedSessions || [];
+                const session = sessions.find(s => s.id == id_phienchat);
+                if (session) {
+                    session.dang_duoc_mo_boi = {
+                        id_nhanvien,
+                        ten_nhanvien
+                    };
+                }
+            }
+        } catch (error) {
+            console.error("Lỗi xử lý sự kiện phiên chat được mở:", error);
+        }
+    });
+    
+    // Lắng nghe sự kiện khi phiên chat được đóng
+    socket.on("phien-chat-duoc-dong", function(data) {
+        try {
+            const { id_phienchat } = JSON.parse(data);
+            
+            // Tìm và kích hoạt lại phiên chat trong danh sách
+            const sessionItem = document.querySelector(`.session-item[data-id="${id_phienchat}"]`);
+            if (sessionItem) {
+                sessionItem.classList.remove('locked');
+                sessionItem.style.opacity = '1';
+                sessionItem.style.cursor = 'pointer';
+                
+                // Xóa badge locked
+                const lockedBadge = sessionItem.querySelector('.locked-badge');
+                if (lockedBadge) {
+                    lockedBadge.remove();
+                }
+            }
+            
+            // Cập nhật dữ liệu session trong danh sách
+            const sessions = window.loadedSessions || [];
+            const session = sessions.find(s => s.id == id_phienchat);
+            if (session) {
+                session.dang_duoc_mo_boi = null;
+            }
+        } catch (error) {
+            console.error("Lỗi xử lý sự kiện phiên chat được đóng:", error);
+        }
+    });
+    
+    // Lắng nghe khi phiên chat đã được mở bởi người khác
+    socket.on("phien-chat-da-duoc-mo", function(data) {
+        try {
+            const { id_phienchat, id_nhanvien, ten_nhanvien } = JSON.parse(data);
+            alert(`Phiên chat này đang được mở bởi ${ten_nhanvien}`);
+        } catch (error) {
+            console.error("Lỗi xử lý sự kiện phiên chat đã được mở:", error);
+        }
+    });
+    
     // Lắng nghe sự kiện khi khách hàng gửi tin nhắn mới
     socket.on("khach-hang-tu-van-gui-tin-nhan", function(data) {
         try {

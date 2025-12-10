@@ -227,6 +227,9 @@
             }
 
             // Gắn tin nhắn mới nhất vào từng phiên chat
+            // Lấy kết nối Redis
+            $redis = getRedisConnection();
+            
             foreach ($danhSachPhienChat as $phienChat) {
                 $phienChat->tin_nhan_moi_nhat = $tinNhanMoiNhat[$phienChat->id][0] ?? null;
                 
@@ -235,6 +238,23 @@
                     ->where('nguoi_gui', 1) // 1: Khách hàng
                     ->where('trang_thai', 0) // 0: Chưa đọc
                     ->count();
+                
+                // Lấy thông tin nhân viên đang mở phiên chat từ Redis
+                $phienChat->dang_duoc_mo_boi = null;
+                if ($redis) {
+                    try {
+                        $staffInfo = $redis->get("phien-chat-{$phienChat->id}-nhan-vien");
+                        if ($staffInfo) {
+                            $staffData = json_decode($staffInfo, true);
+                            $phienChat->dang_duoc_mo_boi = [
+                                'id_nhanvien' => $staffData['id_nhanvien'],
+                                'ten_nhanvien' => $staffData['ten_nhanvien']
+                            ];
+                        }
+                    } catch (\Exception $e) {
+                        error_log("Không thể lấy thông tin từ Redis: " . $e->getMessage());
+                    }
+                }
             }
 
             // Xác định có còn dữ liệu để load thêm không

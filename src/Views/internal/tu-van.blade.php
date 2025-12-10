@@ -255,7 +255,7 @@
 @section('content')
 <div class="tab-container">
     <!-- Tab: Chat -->
-    <div id="tab-chat" class="tab-content active" data-idNhanVien="{{$_SESSION['UserInternal']['ID']}}">
+    <div id="tab-chat" class="tab-content active" data-idNhanVien="{{$_SESSION['UserInternal']['ID']}}" data-tenNhanVien="{{$_SESSION['UserInternal']['Ten']}}">
         <div class="flex flex-col md:flex-row gap-6 h-[70vh]">
             <!-- Danh sách phiên chat -->
             <div class="w-full md:w-1/3 bg-white rounded-xl shadow p-4 flex flex-col">
