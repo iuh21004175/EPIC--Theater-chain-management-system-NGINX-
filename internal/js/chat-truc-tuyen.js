@@ -112,7 +112,7 @@ async function loadChatSessions(reset = false) {
 
         if (result.success) {
             // Lưu sessions vào biến global
-            window.loadedSessions = append ? [...window.loadedSessions, ...result.data] : result.data;
+            window.loadedSessions = reset ? result.data : [...(window.loadedSessions || []), ...result.data];
             
             // Hiển thị phiên chat
             renderChatSessions(result.data, !reset);
