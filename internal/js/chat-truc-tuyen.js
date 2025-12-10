@@ -1395,12 +1395,17 @@ function setupSocketListeners() {
     // Lắng nghe khi phiên chat đã được mở bởi người khác
     socket.on("phien-chat-da-duoc-mo", function(data) {
         try {
-            const { id_phienchat } = JSON.parse(data);
+            const { id_phienchat, id_nhanvien, ten_nhanvien } = JSON.parse(data);
             
-            // Lấy tên nhân viên từ danh sách sessions
-            const sessions = window.loadedSessions || [];
-            const session = sessions.find(s => s.id == id_phienchat);
-            const tenNhanVien = session?.dang_duoc_mo_boi?.ten_nhanvien || 'nhân viên khác';
+            // Ưu tiên sử dụng ten_nhanvien từ socket data
+            // Nếu không có, mới lấy từ danh sách sessions
+            let tenNhanVien = ten_nhanvien;
+            
+            if (!tenNhanVien) {
+                const sessions = window.loadedSessions || [];
+                const session = sessions.find(s => s.id == id_phienchat);
+                tenNhanVien = session?.dang_duoc_mo_boi?.ten_nhanvien || 'nhân viên khác';
+            }
             
             alert(`Phiên chat này đang được mở bởi ${tenNhanVien}`);
         } catch (error) {
