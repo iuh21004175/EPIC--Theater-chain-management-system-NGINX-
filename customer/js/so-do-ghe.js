@@ -830,6 +830,12 @@ function updateSelectedSeat(selectedSeatsContainer, totalPriceEl, continueContai
             // Thêm sự kiện xóa
             div.querySelector("button").addEventListener("click", () => {
                 selectedFood.splice(index, 1); // xóa sản phẩm khỏi mảng
+                document.querySelectorAll(".spkh").forEach(item => {
+                    if (item.dataset.id == f.id) {
+                        const quantityEl = item.parentElement.querySelector(".quantity");
+                        quantityEl.textContent = "0";
+                    }
+                });
                 updateSelectedSeats(selectedSeatsContainer, totalPriceEl, continueContainer); // cập nhật lại danh sách
             });
         });
@@ -864,7 +870,7 @@ async function loadFood(idRap) {
             div.className = "flex justify-between items-center mb-4 p-2 border rounded-lg shadow-sm";
 
             div.innerHTML = `
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 spkh" data-id="${sp.id}">
                     <img src="${urlMinio}/${sp.hinh_anh}" alt="${sp.ten}" class="w-16 h-16 object-cover rounded">
                     <div>
                         <div class="font-semibold">${sp.ten}</div>
