@@ -112,8 +112,14 @@ function updateLatestMessageInSessionList(sessionId, message) {
         // Cập nhật nội dung tin nhắn mới nhất
         const messagePreview = sessionItem.querySelector('p.text-sm');
         if (messagePreview) {
-            messagePreview.textContent = truncateText(message.noi_dung, 50);
-            messagePreview.title = message.noi_dung;
+            // Kiểm tra loại tin nhắn: nếu là hình ảnh thì hiển thị icon
+            if (message.loai_noi_dung == 2 || message.has_image || message.is_image) {
+                messagePreview.innerHTML = '<svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>Hình ảnh';
+                messagePreview.title = 'Hình ảnh';
+            } else {
+                messagePreview.textContent = truncateText(message.noi_dung, 50);
+                messagePreview.title = message.noi_dung;
+            }
             
             // Làm nổi bật nội dung tin nhắn mới
             messagePreview.classList.add('font-semibold');
@@ -347,9 +353,26 @@ function renderChatSessions(sessions) {
     
     sessions.forEach(session => {
         const statusInfo = getSessionStatus(session.trang_thai);
-        const lastMessage = session.tin_nhan && session.tin_nhan.length > 0 
-            ? session.tin_nhan[0].noi_dung 
-            : session.chu_de;
+        
+        // Kiểm tra xem tin nhắn cuối có phải là hình ảnh không
+        let lastMessageContent;
+        let lastMessageTitle = '';
+        
+        if (session.tin_nhan && session.tin_nhan.length > 0) {
+            const lastMsg = session.tin_nhan[0];
+            // Kiểm tra loại tin nhắn: nếu là hình ảnh (loai_noi_dung = 2)
+            if (lastMsg.loai_noi_dung == 2 || lastMsg.has_image || lastMsg.is_image) {
+                lastMessageContent = '<svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>Hình ảnh';
+                lastMessageTitle = 'Hình ảnh';
+            } else {
+                lastMessageContent = truncateText(lastMsg.noi_dung, 50);
+                lastMessageTitle = lastMsg.noi_dung;
+            }
+        } else {
+            lastMessageContent = session.chu_de;
+            lastMessageTitle = session.chu_de;
+        }
+        
         const timestamp = formatTimestamp(session.updated_at);
         
         // Kiểm tra số tin nhắn chưa đọc
@@ -375,8 +398,8 @@ function renderChatSessions(sessions) {
                 <div class="flex items-center justify-between mb-1">
                     <span class="text-xs text-gray-500 italic">${session.rapphim?.ten || 'Rạp phim'}</span>
                 </div>
-                <p class="text-sm ${unreadCount > 0 ? 'font-semibold' : ''} text-gray-600 mb-1" title="${lastMessage}">
-                    ${truncateText(lastMessage, 50)}
+                <p class="text-sm ${unreadCount > 0 ? 'font-semibold' : ''} text-gray-600 mb-1" title="${lastMessageTitle}">
+                    ${lastMessageContent}
                 </p>
                 <p class="text-xs text-gray-400">${timestamp}</p>
             </div>

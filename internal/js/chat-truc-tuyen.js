@@ -220,6 +220,19 @@ function renderChatSessions(sessions, append = false) {
         // Thêm class highlight nếu có tin nhắn chưa đọc
         const highlightClass = unreadCount > 0 ? 'border-l-4 border-red-500' : '';
 
+        // Tạo nội dung tin nhắn cuối: nếu là ảnh thì hiển thị icon
+        let lastMessageContent = '<em>(Chưa có tin nhắn)</em>';
+        if (lastMsg) {
+            const senderLabel = session.trang_thai == 1 ? 'Khách hàng:' : 'Nhân viên:';
+            
+            // Kiểm tra nếu là tin nhắn hình ảnh
+            if (lastMsg.loai_noi_dung == 2 || lastMsg.has_image || lastMsg.is_image) {
+                lastMessageContent = `<span class="ml-1">${senderLabel} <svg class="inline-block w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg> Hình ảnh</span>`;
+            } else {
+                lastMessageContent = `<span class="ml-1">${senderLabel} ${truncateText(lastMsg.noi_dung, 40)}</span>`;
+            }
+        }
+
         const item = document.createElement('div');
         item.className = `session-item ${highlightClass} relative`;
         item.dataset.id = session.id;
@@ -232,7 +245,7 @@ function renderChatSessions(sessions, append = false) {
                 <span class="session-status ${status.class}">${status.text}</span>
             </div>
             <div class="text-xs text-gray-500 mt-1">
-                ${lastMsg ? `<span class="ml-1">${session.trang_thai == 1 ? 'Khách hàng:' : 'Nhân viên:'} ${truncateText(lastMsg.noi_dung, 40)}</span>` : '<em>(Chưa có tin nhắn)</em>'}
+                ${lastMessageContent}
             </div>
             <div class="text-xs text-gray-400 mt-1">${formatTime(session.updated_at)}</div>
             ${unreadBadge}
@@ -1133,7 +1146,7 @@ function updateLatestMessageInList(sessionId, message) {
     const sessionItem = document.querySelector(`.session-item[data-id="${sessionId}"]`);
     if (sessionItem) {
         // Cập nhật nội dung tin nhắn hiển thị trong danh sách
-        const messageSpan = sessionItem.querySelector('.text-xs.text-gray-500 span:last-child');
+        const messageContainer = sessionItem.querySelector('.text-xs.text-gray-500');
         
         // Xác định prefix dựa vào người gửi tin nhắn
         let messagePrefix = '';
@@ -1145,19 +1158,17 @@ function updateLatestMessageInList(sessionId, message) {
             messagePrefix = 'Hệ thống: ';
         }
         
-        if (messageSpan) {
-            messageSpan.textContent = `${messagePrefix}${truncateText(message.noi_dung, 40)}`;
-            messageSpan.title = message.noi_dung;
+        // Tạo nội dung tin nhắn: nếu là ảnh thì hiển thị icon
+        let messageContent;
+        if (message.loai_noi_dung == 2 || message.has_image || message.is_image) {
+            messageContent = `<span class="ml-1">${messagePrefix}<svg class="inline-block w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg> Hình ảnh</span>`;
         } else {
-            // Nếu không tìm thấy, có thể cần tạo mới phần tử này
-            const messageContainer = sessionItem.querySelector('.text-xs.text-gray-500');
-            if (messageContainer) {
-                const newSpan = document.createElement('span');
-                newSpan.className = 'ml-1';
-                newSpan.textContent = `${messagePrefix}${truncateText(message.noi_dung, 40)}`;
-                newSpan.title = message.noi_dung;
-                messageContainer.appendChild(newSpan);
-            }
+            messageContent = `<span class="ml-1">${messagePrefix}${truncateText(message.noi_dung, 40)}</span>`;
+        }
+        
+        // Cập nhật innerHTML của messageContainer
+        if (messageContainer) {
+            messageContainer.innerHTML = messageContent;
         }
         
         // Cập nhật thời gian
