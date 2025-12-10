@@ -888,18 +888,17 @@ async function loadFood(idRap) {
             const plusBtn = div.querySelector(".plusBtn");
             const quantityEl = div.querySelector(".quantity");
 
-            let quantity = 0;
 
             plusBtn.addEventListener("click", () => {
-                quantity++;
-                quantityEl.textContent = quantity;
+                
 
                 // update selectedFood
                 const existing = selectedFood.find(f => f.id === sp.id);
                 if (existing) {
-                    existing.quantity = quantity;
+                    existing.quantity += 1;
+
                 } else {
-                    selectedFood.push({ id: sp.id, ten: sp.ten, gia: sp.gia, quantity });
+                    selectedFood.push({ id: sp.id, ten: sp.ten, gia: sp.gia, quantity: 1 });
                 }
                 updateSelectedSeat(
                     document.getElementById("selectedSeatsContainer"),
