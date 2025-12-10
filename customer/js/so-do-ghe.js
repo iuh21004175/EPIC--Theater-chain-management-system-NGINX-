@@ -292,7 +292,8 @@ async function loadSeats() {
                 const totalFood = selectedFood.reduce((sum, f) => sum + f.gia * f.quantity, 0);
                 const totalBefore = totalSeats + totalFood;
                 document.getElementById("seatCountdownTimer").classList.add("hidden");
-
+                const btnXoaSpS = document.querySelectorAll("#selectedSeatsContainer button");
+                btnXoaSpS.forEach(btn => btn.classList.add("hidden"));
                 // Trừ gift card nếu có
                 let total = totalBefore;
                 let usedGiftAmount = 0;
