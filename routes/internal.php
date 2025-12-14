@@ -23,6 +23,7 @@ use App\Controllers\Ctrl_GoiVideo;
 use App\Controllers\Ctrl_TinTuc;
 use App\Controllers\Ctrl_ChamCong;
 use App\Controllers\Ctrl_DinhVi;
+use App\Controllers\Ctrl_SoatVe;
 
 use function App\Core\view;
 
@@ -68,6 +69,8 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     $r->addRoute('GET', '/dang-ky-khuon-mat', [Ctrl_ChamCong::class, 'dangKyKhuonMat', ['Nhân viên']]);
     // Quản lý thông tin định vị
     $r->addRoute('GET', '/thong-tin-dinh-vi', [Ctrl_DinhVi::class, 'index', ['Quản lý rạp']]);
+    // Soát vé
+    $r->addRoute('GET', '/soat-ve', [Ctrl_SoatVe::class, 'index', ['Nhân viên']]);
 });
 
 $httpMethod = $_SERVER['REQUEST_METHOD'];

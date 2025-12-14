@@ -31,6 +31,7 @@ use App\Controllers\Ctrl_TinTuc;
 use App\Controllers\Ctrl_LuongThuong;
 use App\Controllers\Ctrl_ChamCong;
 use App\Controllers\Ctrl_DinhVi;
+use App\Controllers\Ctrl_SoatVe;
 
 /**
  * Làm sạch mảng đệ quy để đảm bảo tất cả string đều là UTF-8 hợp lệ
@@ -193,6 +194,8 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     // API duy nhất - lấy dữ liệu thô từ database, JavaScript sẽ xử lý format/tổng hợp ở client side
     $r->addRoute('GET', '/thong-ke/du-lieu-tho', [Ctrl_ThongKe::class, 'layDuLieuThoThongKeTheoRap', ['Quản lý rạp']]);
     // API thống kê doanh thu theo suất chiếu (cho Quản lý rạp)
+    $r->addRoute('POST', '/soat-ve/kiem-tra', [Ctrl_SoatVe::class, 'kiemTraVe', ['Nhân viên']]);
+    $r->addRoute('GET', '/soat-ve/lich-su', [Ctrl_SoatVe::class, 'lichSuSoatVe', ['Nhân viên']]);
     $r->addRoute('GET', '/thong-ke/doanh-thu-theo-suat-chieu', [Ctrl_ThongKe::class, 'thongKeDoanhThuTheoSuatChieuTheoRap', ['Quản lý rạp']]);
     // Khách hàng
     $r->addRoute('POST', '/dang-ky', [Ctrl_XacThucCustomer::class, 'dangKy']);
@@ -270,6 +273,7 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     $r->addRoute('GET', '/cham-cong/kiem-tra-dang-ky', [Ctrl_ChamCong::class, 'kiemTraDangKy', ['Nhân viên']]);
     // API Quản lý thông tin định vị (cho Quản lý rạp)
     $r->addRoute('POST', '/thong-tin-dinh-vi', [Ctrl_DinhVi::class, 'updateDinhVi', ['Quản lý rạp']]);
+
 });
 
 $httpMethod = $_SERVER['REQUEST_METHOD'];

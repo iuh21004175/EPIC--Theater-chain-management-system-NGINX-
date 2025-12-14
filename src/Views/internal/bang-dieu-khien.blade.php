@@ -388,6 +388,21 @@
                 </div>
                 <span class="text-xs text-center font-medium text-gray-700">Quản lý thành viên</span>
             </a>
+            <!-- Soát vé -->
+            <a href="{{$_ENV['URL_INTERNAL_BASE']}}/soat-ve" 
+                class="tooltip flex flex-col items-center bg-white rounded-md shadow hover:shadow-md p-4 transition-all hover:translate-y-[-2px]" 
+                data-tooltip="Soát vé khách hàng">
+                <div class="w-12 h-12 flex items-center justify-center bg-orange-100 rounded-full mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" 
+                        class="h-6 w-6 text-orange-600" 
+                        fill="none" viewBox="0 0 24 24" 
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                </div>
+                <span class="text-xs text-center font-medium text-gray-700">Soát vé</span>
+            </a>
             @endif    
             
         </div>
