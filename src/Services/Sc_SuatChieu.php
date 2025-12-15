@@ -656,5 +656,13 @@
             }
             $chiTiet->delete();
         }
+        public function docSuatChieuTheoPhongChieu($idPhongChieu){
+            $suatChieu = SuatChieu::with('phim', 'phongChieu')
+                ->where('id_phongchieu', $idPhongChieu)
+                ->whereDate('batdau', Carbon::today())
+                ->orderBy('batdau', 'asc')
+                ->get();
+            return $suatChieu;
+        }
     }
 ?>

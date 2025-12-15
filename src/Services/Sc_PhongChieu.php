@@ -217,7 +217,11 @@
                 ] : null,
             ];
         }
-
+        public function layPhongChieuTheoRap(){
+            $dsPhongChieu = PhongChieu::where('id_rapphim', $_SESSION['UserInternal']['ID_RapPhim'])
+                            ->get();
+            return $dsPhongChieu;
+        }
     }
 
 ?>

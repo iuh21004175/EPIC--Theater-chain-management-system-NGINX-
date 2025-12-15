@@ -249,7 +249,7 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     $r->addRoute('POST', '/chatbot-ai/tra-loi', [Ctrl_ChatBotAI::class, 'getAIAnswer']);
     $r->addRoute('GET', '/doc-tin-tuc', [Ctrl_TinTuc::class, 'docTinTuc']);
     $r->addRoute('GET', '/doc-chi-tiet-tin-tuc/{id}', [Ctrl_TinTuc::class, 'docChiTiet']);
-
+    $r->addRoute('GET', '/soat-ve/lay-suat-chieu/{id}', [Ctrl_SoatVe::class, 'layDanhSachSuatChieu', ['Nhân viên']]);
     // Tư vấn
     $r->addRoute('POST', '/tao-phien-chat', [Ctrl_TuVan::class, 'khachHangTaoPhienChat']);
     $r->addRoute('GET', '/danh-sach-phien-chat-khach-hang', [Ctrl_TuVan::class, 'khachHangLayDanhSachPhienChat']);
