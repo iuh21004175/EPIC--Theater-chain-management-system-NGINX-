@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Đặt lịch gọi video tư vấn - EPIC CINEMAS</title>
 <link rel="stylesheet" href="{{ $_ENV['URL_WEB_BASE'] }}/css/tailwind.css">
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dtkm5uyx1/image/upload/v1756391269/logo_cinema_z2pcda.jpg">
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">

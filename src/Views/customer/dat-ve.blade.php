@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Đặt vé - EPIC CINEMAS</title>
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dtkm5uyx1/image/upload/v1756391269/logo_cinema_z2pcda.jpg">
 <link rel="stylesheet" href="{{ $_ENV['URL_WEB_BASE'] }}/css/tailwind.css">
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">

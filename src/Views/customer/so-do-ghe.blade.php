@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sơ đồ ghế</title>
+  <link rel="icon" type="image/png" href="https://res.cloudinary.com/dtkm5uyx1/image/upload/v1756391269/logo_cinema_z2pcda.jpg">
   <link rel="stylesheet" href="{{$_ENV['URL_WEB_BASE']}}/css/tailwind.css">
 </head>
 <body class="min-h-screen flex flex-col bg-gray-50 text-gray-800 font-sans" data-urlminio="{{$_ENV['MINIO_SERVER_URL']}}">
