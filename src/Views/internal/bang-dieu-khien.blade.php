@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://res.cloudinary.com/dtkm5uyx1/image/upload/v1756391269/logo_cinema_z2pcda.jpg">
     <link rel="stylesheet" href="{{$_ENV['URL_INTERNAL_BASE']}}/css/tailwind.css">
     <title>Bảng điều khiển - EPIC CINEMA</title>
     @if($_SESSION['UserInternal']['VaiTro'] == 'Quản lý chuỗi rạp' || $_SESSION['UserInternal']['VaiTro'] == 'Quản lý rạp' || $_SESSION['UserInternal']['VaiTro'] == 'Nhân viên')
