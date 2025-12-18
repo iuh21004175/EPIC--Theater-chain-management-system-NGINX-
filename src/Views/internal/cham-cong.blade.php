@@ -91,8 +91,10 @@
             <!-- Camera Section -->
             <div id="cameraSection" 
                  class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300" 
-                 data-ip="{{ $dinhVi->wifi_ip ?? '' }}" 
-                 data-ten="{{ $dinhVi->wifi_ten ?? '' }}">
+                 data-ip="{{ $serverChamCong->wifi_ip ?? '' }}" 
+                 data-port="{{ $serverChamCong->server_port ?? '5000' }}" 
+                 data-ten="{{ $serverChamCong->wifi_ten ?? '' }}"
+                 data-idnhanvien="{{ $_SESSION['UserInternal']['ID'] }}">
                 <div class="p-4 sm:p-6 lg:p-8">
                     <!-- Camera Header -->
                     <div class="flex items-center justify-between mb-4 sm:mb-6">
@@ -152,10 +154,14 @@
                         </div>
                         
                         <!-- Status Indicator -->
-                        <div class="absolute top-3 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full">
+                        <div id="statusIndicator" class="absolute top-3 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full">
                             <p class="text-xs sm:text-sm text-white font-medium flex items-center gap-2">
-                                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                                <span>Sẵn sàng nhận diện</span>
+                                <svg id="statusSpinner" class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                <span id="statusDot" class="hidden w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                <span id="statusText">Đang tải hệ thống nhận diện</span>
                             </p>
                         </div>
                     </div>

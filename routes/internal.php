@@ -22,7 +22,7 @@ use App\Controllers\Ctrl_DonHang;
 use App\Controllers\Ctrl_GoiVideo;
 use App\Controllers\Ctrl_TinTuc;
 use App\Controllers\Ctrl_ChamCong;
-use App\Controllers\Ctrl_DinhVi;
+use App\Controllers\Ctrl_ServerChamCong;
 use App\Controllers\Ctrl_SoatVe;
 
 use function App\Core\view;
@@ -67,8 +67,8 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     // Chấm công bằng khuôn mặt
     $r->addRoute('GET', '/cham-cong', [Ctrl_ChamCong::class, 'index', ['Nhân viên']]);
     $r->addRoute('GET', '/dang-ky-khuon-mat', [Ctrl_ChamCong::class, 'dangKyKhuonMat', ['Nhân viên']]);
-    // Quản lý thông tin định vị
-    $r->addRoute('GET', '/thong-tin-dinh-vi', [Ctrl_DinhVi::class, 'index', ['Quản lý rạp']]);
+    // Quản lý thông tin server chấm công
+    $r->addRoute('GET', '/server-cham-cong', [Ctrl_ServerChamCong::class, 'index', ['Quản lý rạp']]);
     // Soát vé
     $r->addRoute('GET', '/soat-ve', [Ctrl_SoatVe::class, 'index', ['Nhân viên']]);
 });

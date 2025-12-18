@@ -279,15 +279,15 @@
                 </div>
                 <span class="text-xs text-center font-medium text-gray-700">Quản lý lương</span>
             </a>
-            <!-- Quản lý thông tin định vị -->
-            <a href="{{$_ENV['URL_INTERNAL_BASE']}}/thong-tin-dinh-vi" class="tooltip flex flex-col items-center bg-white rounded-md shadow hover:shadow-md p-4 transition-all hover:translate-y-[-2px]" data-tooltip="Quản lý thông tin định vị chấm công">
+            <!-- Quản lý server chấm công -->
+            <a href="{{$_ENV['URL_INTERNAL_BASE']}}/server-cham-cong" class="tooltip flex flex-col items-center bg-white rounded-md shadow hover:shadow-md p-4 transition-all hover:translate-y-[-2px]" data-tooltip="Quản lý thông tin server chấm công">
                 <div class="w-12 h-12 flex items-center justify-center bg-red-100 rounded-full mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                 </div>
-                <span class="text-xs text-center font-medium text-gray-700">Thông tin định vị</span>
+                <span class="text-xs text-center font-medium text-gray-700">Server chấm công</span>
             </a>
             @else
             <!-- Bán vé -->

@@ -8,6 +8,59 @@ use Exception;
 
 class Sc_ChamCong
 {
+    // Cấu hình ca làm việc chuẩn
+    private const CA_CONFIG = [
+        'Ca sáng' => [
+            'gioVaoChuan' => '08:00',
+            'gioRaChuan' => '12:00',
+            'gioMoCua' => 8,
+            'gioDongCua' => 22
+        ],
+        'Ca chiều' => [
+            'gioVaoChuan' => '12:00',
+            'gioRaChuan' => '17:00',
+            'gioMoCua' => 8,
+            'gioDongCua' => 22
+        ],
+        'Ca tối' => [
+            'gioVaoChuan' => '17:00',
+            'gioRaChuan' => '22:00',
+            'gioMoCua' => 8,
+            'gioDongCua' => 22
+        ]
+    ];
+
+    /**
+     * Xác định ca làm việc hiện tại dựa trên thời gian
+     * @return string|null Tên ca ('Ca sáng', 'Ca chiều', 'Ca tối') hoặc null nếu không trong ca nào
+     */
+    private function xacDinhCaHienTai()
+    {
+        $gioHienTai = (int)date('G'); // Giờ hiện tại (0-23)
+        $phutHienTai = (int)date('i'); // Phút hiện tại (0-59)
+        $phutHienTaiTong = $gioHienTai * 60 + $phutHienTai;
+
+        foreach (self::CA_CONFIG as $tenCa => $config) {
+            // Parse giờ vào và giờ ra chuẩn
+            list($gioVao, $phutVao) = explode(':', $config['gioVaoChuan']);
+            list($gioRa, $phutRa) = explode(':', $config['gioRaChuan']);
+            
+            $phutBatDauCa = (int)$gioVao * 60 + (int)$phutVao;
+            $phutKetThucCa = (int)$gioRa * 60 + (int)$phutRa;
+            
+            // Cho phép chấm công trước/sau ca 30 phút
+            $phutBatDauChoPhep = $phutBatDauCa - 30;
+            $phutKetThucChoPhep = $phutKetThucCa + 30;
+            
+            // Kiểm tra nếu thời gian hiện tại nằm trong khoảng cho phép
+            if ($phutHienTaiTong >= $phutBatDauChoPhep && $phutHienTaiTong <= $phutKetThucChoPhep) {
+                return $tenCa;
+            }
+        }
+        
+        return null;
+    }
+
     /**
      * Kiểm tra trạng thái đăng ký khuôn mặt
      */
@@ -227,6 +280,126 @@ class Sc_ChamCong
             'google_maps_url' => $data['google_maps_url'] ?? null
         ];
     }
+    public function chamCongNangCap() {
+        $data = file_get_contents('php://input');
+        $json = json_decode($data, true);
+        if (!$json) {
+            throw new Exception('Dữ liệu không hợp lệ');
+        }
+        $idNhanVien = $json['id_nhanvien'] ?? null;
+        $loai = $json['loai'] ?? null;
+
+        // Xác định ca hiện tại dựa trên thời gian
+        $caHienTai = $this->xacDinhCaHienTai();
+        if (!$caHienTai) {
+            throw new Exception('Không thuộc giờ làm việc của bất kỳ ca nào. Vui lòng liên hệ quản lý.');
+        }
+
+        // Lấy ngày hiện tại
+        $ngayHienTai = date('Y-m-d');
+        
+        // Tìm bản ghi phân công theo nhân viên, ngày và ca hiện tại
+        $phanCong = PhanCong::where('id_nhanvien', $idNhanVien)
+            ->where('ngay', $ngayHienTai)
+            ->where('ca', $caHienTai)
+            ->first();
+        
+        if (!$phanCong) {
+            throw new Exception("Không tìm thấy bản ghi phân công cho ca '{$caHienTai}' vào ngày hôm nay. Vui lòng liên hệ quản lý.");
+        }
+        if ($loai == 'vao') {
+            if ($phanCong->gio_vao) {
+                throw new Exception('Đã chấm công vào trước đó vào lúc: ' . $phanCong->gio_vao);
+            }
+            $phanCong->update([
+                'gio_vao' => date('Y-m-d H:i:s')
+            ]);
+            return [
+                'success' => true,
+                'message' => 'Chấm công vào thành công',
+                'thoi_gian' => $phanCong->gio_vao
+            ];
+        } elseif ($loai == 'ra') {
+            if ($phanCong->gio_ra) {
+                throw new Exception('Đã chấm công ra trước đó vào lúc: ' . $phanCong->gio_ra);
+            }
+            if (!$phanCong->gio_vao) {
+                throw new Exception('Chưa chấm công vào, không thể chấm công ra');
+            }
+            $phanCong->update([
+                'gio_ra' => date('Y-m-d H:i:s')
+            ]);
+            return [
+                'success' => true,
+                'message' => 'Chấm công ra thành công',
+                'thoi_gian' => $phanCong->gio_ra
+            ];
+        } else {
+            throw new Exception('Loại chấm công không hợp lệ');
+        }
+        
+    }
+    public function dangKyKhuonMatNangCap() {
+        $data = file_get_contents('php://input');
+        $json = json_decode($data, true);
+        if (!$json) {
+            throw new Exception('Dữ liệu không hợp lệ');
+        }
+        
+        $idNhanVien = $json['id_nhanvien'] ?? null;
+        if (!$idNhanVien) {
+            throw new Exception('Thiếu id nhân viên');
+        }
+
+        // Định nghĩa file log
+        $fileLog = __DIR__ . '/../../cache/log/face_register.log';
+        
+        // Đảm bảo thư mục tồn tại và có quyền ghi
+        $logDir = dirname($fileLog);
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0755, true);
+        }
+        
+        // Kiểm tra hoặc tạo bản ghi đăng ký khuôn mặt
+        $dangKyKhuonMat = DangKyKhuonMat::where('id_nhanvien', $idNhanVien)->first();
+        
+        if ($dangKyKhuonMat) {
+            // Cập nhật bản ghi hiện có
+            $dangKyKhuonMat->update([
+                'ngay_dang_ky' => date('Y-m-d H:i:s'),
+                'trang_thai' => 'Đang hoạt động'
+            ]);
+            
+            $logContent = date('Y-m-d H:i:s') . " - ID: $idNhanVien - Cập nhật đăng ký khuôn mặt thành công\n";
+        } else {
+            // Tạo bản ghi mới
+            $dangKyKhuonMat = DangKyKhuonMat::create([
+                'id_nhanvien' => $idNhanVien,
+                'ngay_dang_ky' => date('Y-m-d H:i:s'),
+                'trang_thai' => 'Đang hoạt động'
+            ]);
+            
+            if (!$dangKyKhuonMat) {
+                $logContent = date('Y-m-d H:i:s') . " - ID: $idNhanVien - Lỗi: Không thể lưu thông tin đăng ký\n";
+                file_put_contents($fileLog, $logContent, FILE_APPEND);
+                throw new Exception('Lỗi lưu thông tin đăng ký khuôn mặt');
+            }
+            
+            $logContent = date('Y-m-d H:i:s') . " - ID: $idNhanVien - Tạo đăng ký khuôn mặt mới thành công\n";
+        }
+        
+        file_put_contents($fileLog, $logContent, FILE_APPEND);
+        
+        return [
+            'success' => true,
+            'message' => 'Đăng ký khuôn mặt thành công',
+            'data' => [
+                'id_nhanvien' => $idNhanVien,
+                'ngay_dang_ky' => $dangKyKhuonMat->ngay_dang_ky,
+                'trang_thai' => $dangKyKhuonMat->trang_thai
+            ]
+        ];
+    }
     public function chamCongKhuonMat()
     {
         // 1. Validate dữ liệu đầu vào
@@ -343,39 +516,44 @@ class Sc_ChamCong
         // 5. Lưu vào bảng chấm công
         $ngayHienTai = date('Y-m-d');
         $gioHienTai = date('Y-m-d H:i:s');
-        if(!isset($_POST['id_phancong'])){
-            throw new Exception('Nhận diện khuôn mặt thành công nhưng không tìm thấy bản ghi phân công hiện tại.');
+        
+        // Xác định ca hiện tại dựa trên thời gian
+        $caHienTai = $this->xacDinhCaHienTai();
+        if (!$caHienTai) {
+            throw new Exception('Không thuộc giờ làm việc của bất kỳ ca nào. Vui lòng liên hệ quản lý.');
         }
+        
+        // Tìm bản ghi phân công theo nhân viên, ngày và ca hiện tại
         $daChamCong = PhanCong::where('id_nhanvien', $idNhanVien)
             ->where('ngay', $ngayHienTai)
-            ->where('id', $_POST['id_phancong'])
+            ->where('ca', $caHienTai)
             ->first();
 
-        if ($daChamCong) {
-            // Đã có bản ghi - update
-            if ($loai == 'checkin') {
-                // Kiểm tra đã check-in chưa
-                if ($daChamCong->gio_vao) {
-                    throw new Exception('Bạn đã chấm công vào rồi. Thời gian: ' . $daChamCong->gio_vao);
-                }
-                $daChamCong->update([
-                    'gio_vao' => $gioHienTai
-                ]);
-            } else if ($loai == 'checkout') {
-                // Kiểm tra đã check-in chưa
-                if (!$daChamCong->gio_vao) {
-                    throw new Exception('Bạn chưa chấm công vào. Vui lòng chấm công vào trước.');
-                }
-                // Kiểm tra đã check-out chưa
-                if ($daChamCong->gio_ra) {
-                    throw new Exception('Bạn đã chấm công ra rồi. Thời gian: ' . $daChamCong->gio_ra);
-                }
-                $daChamCong->update([
-                    'gio_ra' => $gioHienTai
-                ]);
+        if (!$daChamCong) {
+            throw new Exception("Không tìm thấy bản ghi phân công cho ca '{$caHienTai}' vào ngày hôm nay. Vui lòng liên hệ quản lý.");
+        }
+        
+        // Đã có bản ghi - update
+        if ($loai == 'checkin') {
+            // Kiểm tra đã check-in chưa
+            if ($daChamCong->gio_vao) {
+                throw new Exception('Bạn đã chấm công vào rồi. Thời gian: ' . $daChamCong->gio_vao);
             }
-        } else {
-            throw new Exception('Nhận diện khuôn mặt thành công nhưng không tìm thấy bản ghi phân công hiện tại.');
+            $daChamCong->update([
+                'gio_vao' => $gioHienTai
+            ]);
+        } else if ($loai == 'checkout') {
+            // Kiểm tra đã check-in chưa
+            if (!$daChamCong->gio_vao) {
+                throw new Exception('Bạn chưa chấm công vào. Vui lòng chấm công vào trước.');
+            }
+            // Kiểm tra đã check-out chưa
+            if ($daChamCong->gio_ra) {
+                throw new Exception('Bạn đã chấm công ra rồi. Thời gian: ' . $daChamCong->gio_ra);
+            }
+            $daChamCong->update([
+                'gio_ra' => $gioHienTai
+            ]);
         }
 
         // 6. Lấy thông tin nhân viên để trả về (optional)

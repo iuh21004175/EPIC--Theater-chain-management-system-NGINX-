@@ -32,6 +32,7 @@ use App\Controllers\Ctrl_LuongThuong;
 use App\Controllers\Ctrl_ChamCong;
 use App\Controllers\Ctrl_DinhVi;
 use App\Controllers\Ctrl_SoatVe;
+use App\Controllers\Ctrl_ServerChamCong;
 
 /**
  * Làm sạch mảng đệ quy để đảm bảo tất cả string đều là UTF-8 hợp lệ
@@ -180,6 +181,11 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     $r->addRoute('PUT', '/duyet-tin-tuc/{id:\d+}', [Ctrl_TinTuc::class, 'duyetTinTuc', ['Quản lý rạp']]);
     $r->addRoute('GET', '/doc-khach-hang', [Ctrl_KhachHang::class, 'docKhachHang', ['Nhân viên']]);
     $r->addRoute('GET', '/doc-don-hang-theo-rap/{id:\d+}', [Ctrl_DonHang::class, 'docDonHangTheoRap', ['Nhân viên']]);
+    
+    // API cho .NET - Đăng ký khuôn mặt và chấm công
+    $r->addRoute('POST', '/dang-ky-khuon-mat', [Ctrl_ChamCong::class, 'xuLyDangKyKhuonMatNangCap']);
+    $r->addRoute('POST', '/cham-cong', [Ctrl_ChamCong::class, 'xuLyChamCongNangCap']);
+    
     $r->addRoute('GET', '/doc-giao-dich/{id:\d+}', [Ctrl_DonHang::class, 'docDonHangKH', ['Nhân viên']]);
     $r->addRoute('PUT', '/trang-thai-khach-hang/{id:\d+}', [Ctrl_KhachHang::class, 'suaTrangThai', ['Nhân viên']]);
     $r->addRoute('POST', '/banner', [Ctrl_Banner::class, 'them', ['Admin']]);
@@ -273,7 +279,8 @@ $dispatcher = FastRoute\simpleDispatcher(function(FastRoute\RouteCollector $r) {
     $r->addRoute('GET', '/cham-cong/kiem-tra-dang-ky', [Ctrl_ChamCong::class, 'kiemTraDangKy', ['Nhân viên']]);
     // API Quản lý thông tin định vị (cho Quản lý rạp)
     $r->addRoute('POST', '/thong-tin-dinh-vi', [Ctrl_DinhVi::class, 'updateDinhVi', ['Quản lý rạp']]);
-
+    $r->addRoute('POST', '/thong-tin-server', [Ctrl_ServerChamCong::class, 'updateServerChamCong', ['Quản lý rạp']]);
+    
 });
 
 $httpMethod = $_SERVER['REQUEST_METHOD'];

@@ -2,7 +2,7 @@
 namespace App\Controllers;
 
 use App\Services\Sc_ChamCong;
-use App\Services\Sc_DinhVi;
+use App\Services\Sc_ServerChamCong;
 use function App\Core\view;
 
 class Ctrl_ChamCong
@@ -12,10 +12,10 @@ class Ctrl_ChamCong
      */
     public function index()
     {   
-        $service = new Sc_DinhVi();
-        $dinhVi = $service->getDinhVi();
+        $service = new Sc_ServerChamCong();
+        $serverChamCong = $service->getServerChamCong();
         return view('internal.cham-cong', [
-            'dinhVi' => $dinhVi
+            'serverChamCong' => $serverChamCong
         ]);
     }
 
@@ -24,7 +24,11 @@ class Ctrl_ChamCong
      */
     public function dangKyKhuonMat()
     {
-        return view('internal.dang-ky-khuon-mat');
+        $service = new Sc_ServerChamCong();
+        $serverChamCong = $service->getServerChamCong();
+        return view('internal.dang-ky-khuon-mat', [
+            'serverChamCong' => $serverChamCong
+        ]);
     }
 
     /**
@@ -93,6 +97,40 @@ class Ctrl_ChamCong
             return [
                 'success' => false,
                 'message' =>  $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Xử lý đăng ký khuôn mặt nâng cấp từ .NET
+     * Nhận JSON: {id_nhanvien: string}
+     */
+    public function xuLyDangKyKhuonMatNangCap(){
+        $service = new Sc_ChamCong();
+        try {
+            $result = $service->dangKyKhuonMatNangCap();
+            return $result;
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Xử lý chấm công nâng cấp từ .NET
+     * Nhận JSON: {id_nhanvien: string, loai: string}
+     */
+    public function xuLyChamCongNangCap(){
+        $service = new Sc_ChamCong();
+        try {
+            $result = $service->chamCongNangCap();
+            return $result;
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
             ];
         }
     }

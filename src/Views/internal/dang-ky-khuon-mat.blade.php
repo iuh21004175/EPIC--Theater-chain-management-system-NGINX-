@@ -91,7 +91,11 @@
         <div class=" gap-4 sm:gap-6">
             <!-- Camera Section (Left/Top) -->
             <div class="lg:col-span-2">
-                <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden">
+                <div id="cameraSection" class="bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden"
+                     data-ip="{{ $serverChamCong->wifi_ip ?? '' }}"
+                     data-port="{{ $serverChamCong->server_port ?? '5000' }}"
+                     data-ten="{{ $serverChamCong->wifi_ten ?? '' }}"
+                     data-idnhanvien="{{ $_SESSION['UserInternal']['ID'] }}">
                     <!-- Camera Controls -->
                     <div class="p-3 sm:p-4 lg:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
                         <div class="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3">
@@ -119,6 +123,18 @@
                         <video id="video" autoplay muted playsinline class="object-contain w-full h-full" playsinline></video>
                         <canvas id="overlay" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
                         
+                        <!-- Status Indicator -->
+                        <div id="statusIndicator" class="absolute top-3 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full">
+                            <p class="text-xs sm:text-sm text-white font-medium flex items-center gap-2">
+                                <svg id="statusSpinner" class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                <span id="statusDot" class="hidden w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                                <span id="statusText">Đang tải hệ thống nhận diện</span>
+                            </p>
+                        </div>
+                        
                         <!-- Camera Frame Overlay -->
                         <div class="absolute inset-0 pointer-events-none">
                             <div class="absolute inset-4 sm:inset-8 lg:inset-12 border-2 border-white/40 rounded-xl sm:rounded-2xl"></div>
@@ -136,7 +152,7 @@
 
                     <!-- Action Buttons -->
                     <div class="p-3 sm:p-4 lg:p-6 space-y-2 sm:space-y-3 bg-gray-50 border-t border-gray-200">
-                        <button id="btnStartCapture" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 sm:py-4 rounded-lg sm:rounded-xl hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-semibold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95">
+                        <button id="btnStartCapture" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 sm:py-4 rounded-lg sm:rounded-xl hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-4 focus:ring-green-300 font-semibold text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95" disabled>
                             <span class="flex items-center justify-center gap-2">
                                 <svg class="h-5 w-5 sm:h-6 sm:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
